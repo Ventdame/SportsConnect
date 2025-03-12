@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Vues;
 
 use App\Core\VueBase;
@@ -57,44 +56,32 @@ class ReservationVue extends VueBase
         <main>
             <!-- Section de filtre de recherche -->
             <section class="search-filter">
-                <form id="filter-form" class="filter-form">
-                    <!-- Champ de recherche pour la ville -->
-                    <div class="form-group">
-                        <input type="text" id="filter-ville" name="ville" class="filter-input" placeholder="Ville">
-                    </div>
-
-                    <!-- Sélecteur pour choisir un sport -->
-                    <div class="form-group">
-                        <select id="filter-sport" name="sport" class="filter-select">
-                            <option value="">Veuillez sélectionner un sport</option>
-                            <?php 
-                            foreach ($this->sports as $sport) :
-                                // Selon la structure de $this->sports, adapter l'extraction du nom de sport
-                                if (is_array($sport) && isset($sport['nom_sport'])) {
-                                    $nomSport = $sport['nom_sport'];
-                                } elseif (is_string($sport)) {
-                                    $nomSport = $sport;
-                                } else {
-                                    $nomSport = "Sport inconnu";
-                                }
-                            ?>
-                                <option value="<?php echo $this->e($nomSport); ?>">
-                                    <?php echo $this->e($nomSport); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <!-- Champ de recherche pour la date -->
-                    <div class="form-group">
-                        <input type="date" id="filter-date" name="date" class="filter-input">
-                    </div>
-
-                    <!-- Bouton de soumission du formulaire -->
-                    <div class="form-group">
-                        <button type="submit" class="btn-search">Rechercher</button>
-                    </div>
-                </form>
+                <?php
+                // Générer un formulaire sécurisé pour la recherche
+                echo $this->genererFormulaire(
+                    '#', // Action traitée par JavaScript
+                    'recherche_evenements',
+                    'POST',
+                    '<div class="filter-form">
+                        <div class="form-group">
+                            <input type="text" id="filter-ville" name="ville" class="filter-input" placeholder="Ville">
+                        </div>
+                        <div class="form-group">
+                            <select id="filter-sport" name="sport" class="filter-select">
+                                <option value="">Veuillez sélectionner un sport</option>
+                                ' . $this->genererOptionsSports() . '
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="date" id="filter-date" name="date" class="filter-input">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn-search">Rechercher</button>
+                        </div>
+                    </div>',
+                    ['id' => 'filter-form']
+                );
+                ?>
             </section>
 
             <!-- Liste des événements disponibles -->
@@ -149,16 +136,20 @@ class ReservationVue extends VueBase
                                     ?>
                                 </p>
 
-                                <!-- Bouton "Réserver" -->
-                                <form method="POST" action="?page=reservation&action=reserver">
-                                    <?php if (isset($reservation['id_evenement'])): ?>
-                                        <input type="hidden" name="id_evenement" 
-                                               value="<?php echo $this->e($reservation['id_evenement']); ?>">
-                                        <button type="submit" class="btn-reserver">Réserver</button>
-                                    <?php else: ?>
-                                        <p>Impossible de réserver cet événement (ID manquant).</p>
-                                    <?php endif; ?>
-                                </form>
+                                <?php
+                                // Générer un formulaire sécurisé pour la réservation
+                                if ($this->utilisateur) {
+                                    echo $this->genererFormulaire(
+                                        '?page=reservation&action=reserver',
+                                        'reservation_' . $reservation['secure_token'],
+                                        'POST',
+                                        $this->genererInputIDSecurise($reservation['secure_token']) .
+                                        '<button type="submit" class="btn-reserver">Réserver</button>'
+                                    );
+                                } else {
+                                    echo '<a href="?page=connexion" class="btn-reserver">Connectez-vous pour réserver</a>';
+                                }
+                                ?>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -169,18 +160,25 @@ class ReservationVue extends VueBase
         </main>
         <?php
     }
-
+    
     /**
-     * Surcharge de la méthode afficher pour ajouter l'attribut data-pmr au body
+     * Génère les options pour le sélecteur de sports
+     * 
+     * @return string HTML des options
      */
-    public function afficher($styles = [], $scripts = [], $scriptsFooter = [])
-    {
-        // Détermine le statut PMR pour l'attribut data-pmr du body
-        $statutPmr = (isset($this->utilisateur['pmr']) && $this->utilisateur['pmr'] === 'oui') ? 'oui' : 'non';
-        
-        // Ajoute script.js pour la gestion des filtres
-        $scriptsFooter[] = 'JS/script.js';
-        
-        parent::afficher($styles, $scripts, $scriptsFooter);
+    private function genererOptionsSports() {
+        $options = '';
+        foreach ($this->sports as $sport) {
+            // Selon la structure de $this->sports, adapter l'extraction du nom de sport
+            if (is_array($sport) && isset($sport['nom_sport'])) {
+                $nomSport = $sport['nom_sport'];
+                $idSport = $sport['id_sport'] ?? '';
+                $options .= '<option value="' . $this->e($nomSport) . '" data-id="' . $this->e($idSport) . '">' 
+                          . $this->e($nomSport) . '</option>';
+            } elseif (is_string($sport)) {
+                $options .= '<option value="' . $this->e($sport) . '">' . $this->e($sport) . '</option>';
+            }
+        }
+        return $options;
     }
 }

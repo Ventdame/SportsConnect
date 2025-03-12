@@ -36,14 +36,19 @@ class AccueilControleur extends ControleurBase
     public function index()
     {
         try {
-            // Récupérer la liste des sports disponibles
-            $sports = $this->sportModele->RecupSports();
+            // Vérifier si l'utilisateur est PMR
+            $statutPmr = isset($this->utilisateurConnecte['pmr']) && $this->utilisateurConnecte['pmr'] == 1 ? 'oui' : 'non';
+            
+            // Récupérer la liste des sports appropriés selon le statut PMR
+            $sports = $this->sportModele->obtenirSportsSelonUtilisateur($statutPmr);
             
             // Création et affichage de la vue
             $vue = new AccueilVue(
                 "Bienvenue sur SportsConnect", 
                 $sports, 
-                $this->utilisateurConnecte
+                $this->utilisateurConnecte,
+                [],
+                ($statutPmr === 'oui')
             );
             $vue->afficher();
         } catch (\Exception $e) {

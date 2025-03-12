@@ -151,15 +151,19 @@ class ReservationModele extends FabriqueBase
     {
         $sql = "DELETE FROM {$this->table}
                 WHERE id_utilisateur = :id_utilisateur AND id_evenement = :id_evenement";
-
-        return (bool) $this->requetePersonnalisee(
-            $sql,
-            [
+    
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
                 ':id_utilisateur' => $idUtilisateur,
                 ':id_evenement' => $idEvenement
-            ],
-            false
-        );
+            ]);
+            
+            return true;
+        } catch (\PDOException $e) {
+            error_log("Erreur lors de la suppression de la réservation : " . $e->getMessage());
+            return false;
+        }
     }
 
     /**

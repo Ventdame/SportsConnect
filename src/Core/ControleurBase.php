@@ -1,6 +1,8 @@
 <?php
-
 namespace App\Core;
+
+use App\Securite\CSRFProtection;
+use App\Securite\ValidateurDonnees;
 
 /**
  * Classe abstraite ControleurBase
@@ -117,6 +119,55 @@ abstract class ControleurBase
     }
 
     /**
+     * Récupère les données d'un formulaire POST avec validation CSRF et vérification des types
+     * 
+     * @param array $schema Schéma de validation des champs
+     * @return array|false Tableau des données validées ou false si validation échouée
+     */
+    protected function obtenirDonneesFormulaireValidees($schema)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->erreurs[] = "Méthode non autorisée";
+            return false;
+        }
+        
+        // Vérifier le token CSRF
+        if (!isset($_POST['csrf_token']) || !isset($_POST['form_name'])) {
+            $this->erreurs[] = "Formulaire invalide";
+            return false;
+        }
+        
+        if (!$this->verifierCSRFToken($_POST['form_name'], $_POST['csrf_token'])) {
+            $this->erreurs[] = "Session expirée ou formulaire invalide";
+            return false;
+        }
+        
+        // Collecter les données
+        $donnees = [];
+        foreach ($schema as $champ => $config) {
+            if (isset($_POST[$champ])) {
+                $donnees[$champ] = $_POST[$champ];
+            }
+        }
+        
+        // Valider les données
+        $erreurs = ValidateurDonnees::validerSchema($donnees, $schema);
+        if (!empty($erreurs)) {
+            $this->erreurs = array_merge($this->erreurs, $erreurs);
+            return false;
+        }
+        
+        // Nettoyer les données
+        foreach ($donnees as $champ => $valeur) {
+            if (is_string($valeur)) {
+                $donnees[$champ] = ValidateurDonnees::nettoyerChaine($valeur);
+            }
+        }
+        
+        return $donnees;
+    }
+
+    /**
      * Traite la requête et détermine quelle méthode appeler en fonction de l'action
      * 
      * @param string $action Action à exécuter, si null, prend la valeur du paramètre 'action' de l'URL
@@ -127,6 +178,11 @@ abstract class ControleurBase
         // Si aucune action n'est spécifiée, on utilise le paramètre 'action' de l'URL
         if ($action === null) {
             $action = $_GET['action'] ?? 'index';
+        }
+
+        // Vérifier que l'action n'est pas "traiter" elle-même pour éviter la récursion
+        if ($action === 'traiter') {
+            $action = 'index'; // Rediriger vers l'action par défaut
         }
 
         // Si la méthode correspondant à l'action existe, on l'appelle
@@ -168,6 +224,92 @@ abstract class ControleurBase
     protected function ajouterMessageErreur($message)
     {
         $_SESSION['messageErreur'] = $message;
+    }
+
+    /**
+     * Vérifie si l'utilisateur est déjà connecté et redirige vers la page de profil si c'est le cas
+     * 
+     * @param string $message Message à afficher en cas de redirection
+     * @return bool Vrai si l'utilisateur n'est pas connecté, sinon redirige et retourne faux
+     */
+    protected function interdireAccesSiConnecte($message = "Vous êtes déjà connecté")
+    {
+        if ($this->estConnecte()) {
+            Reponses::rediriger('profil', [], $message);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Génère un token CSRF pour un formulaire
+     * 
+     * @param string $formName Nom du formulaire
+     * @return string Token généré
+     */
+    protected function genererCSRFToken($formName) {
+        return CSRFProtection::genererToken($formName);
+    }
+    
+    /**
+     * Vérifie un token CSRF
+     * 
+     * @param string $formName Nom du formulaire
+     * @param string $token Token à vérifier
+     * @return bool True si le token est valide
+     */
+    protected function verifierCSRFToken($formName, $token) {
+        return CSRFProtection::verifierToken($formName, $token);
+    }
+    
+    /**
+     * Génère un token sécurisé pour un ID
+     * 
+     * @param string $type Type d'entité
+     * @param int $id ID à sécuriser
+     * @return string Token sécurisé
+     */
+    protected function securiserID($type, $id) {
+        if (!isset($_SESSION['secure_ids'])) {
+            $_SESSION['secure_ids'] = [];
+        }
+        
+        $token = bin2hex(random_bytes(16));
+        $_SESSION['secure_ids'][$token] = [
+            'type' => $type,
+            'id' => $id,
+            'expires' => time() + 3600 // Expire après 1 heure
+        ];
+        
+        return $token;
+    }
+    
+    /**
+     * Récupère un ID à partir d'un token sécurisé
+     * 
+     * @param string $token Token sécurisé
+     * @param string $type Type d'entité attendu
+     * @return int|false ID récupéré ou false si token invalide
+     */
+    protected function recupererIDSecurise($token, $type) {
+        if (!isset($_SESSION['secure_ids'][$token])) {
+            return false;
+        }
+        
+        $stored = $_SESSION['secure_ids'][$token];
+        
+        // Vérifier le type et l'expiration
+        if ($stored['type'] !== $type || $stored['expires'] < time()) {
+            unset($_SESSION['secure_ids'][$token]);
+            return false;
+        }
+        
+        // Utilisation unique - supprimer après récupération
+        $id = $stored['id'];
+        unset($_SESSION['secure_ids'][$token]);
+        
+        return $id;
     }
 
     /**

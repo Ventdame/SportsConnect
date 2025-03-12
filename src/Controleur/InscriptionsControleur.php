@@ -35,6 +35,11 @@ class InscriptionsControleur extends ControleurBase
      */
     public function index()
     {
+        // Interdire l'accès si l'utilisateur est déjà connecté
+        if (!$this->interdireAccesSiConnecte("Vous êtes déjà connecté. Déconnectez-vous pour créer un nouveau compte.")) {
+            return;
+        }
+
         $vue = new InscriptionVue("Inscription - SportConnect");
         $vue->afficher();
     }
@@ -44,12 +49,21 @@ class InscriptionsControleur extends ControleurBase
      */
     public function traiterInscription()
     {
+        // Interdire l'accès si l'utilisateur est déjà connecté
+        if (!$this->interdireAccesSiConnecte()) {
+            return;
+        }
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Récupération des données du formulaire
             $donnees = $this->obtenirDonneesFormulaire([
-                'pseudo', 'prenom', 'email', 'mot_de_passe', 'mot_de_passe_confirmation'
+                'pseudo',
+                'prenom',
+                'email',
+                'mot_de_passe',
+                'mot_de_passe_confirmation'
             ]);
-            
+
             if ($donnees) {
                 $pseudo = $donnees['pseudo'];
                 $prenom = $donnees['prenom'];
@@ -57,15 +71,15 @@ class InscriptionsControleur extends ControleurBase
                 $motDePasse = $donnees['mot_de_passe'];
                 $motDePasseConfirmation = $donnees['mot_de_passe_confirmation'];
                 $pmr = isset($_POST['pmr']) ? 1 : 0;
-                
+
                 // Validation des données
                 $erreurs = $this->validerDonnees($pseudo, $prenom, $email, $motDePasse, $motDePasseConfirmation);
-                
+
                 if (empty($erreurs)) {
                     try {
                         // Création de l'utilisateur
                         $userId = $this->utilisateurModele->creerUtilisateur($pseudo, $prenom, $email, $motDePasse, $pmr);
-                        
+
                         // Ajout du message de succès et redirection
                         $this->ajouterMessageReussite("Inscription réussie ! Vous pouvez maintenant vous connecter.");
                         Reponses::rediriger('connexion');
@@ -73,7 +87,7 @@ class InscriptionsControleur extends ControleurBase
                         $erreurs[] = "Erreur lors de l'inscription : " . $e->getMessage();
                     }
                 }
-                
+
                 // S'il y a des erreurs, réaffichage du formulaire avec les erreurs
                 if (!empty($erreurs)) {
                     $vue = new InscriptionVue("Inscription - SportConnect", $erreurs);

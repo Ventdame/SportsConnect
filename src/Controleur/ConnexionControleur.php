@@ -35,6 +35,11 @@ class ConnexionControleur extends ControleurBase
      */
     public function index()
     {
+        // Interdire l'accès si l'utilisateur est déjà connecté
+        if (!$this->interdireAccesSiConnecte("Vous êtes déjà connecté. Déconnectez-vous pour vous connecter avec un autre compte.")) {
+            return;
+        }
+
         $vue = new ConnexionVue("Connexion - SportConnect");
         $vue->afficher();
     }
@@ -44,19 +49,24 @@ class ConnexionControleur extends ControleurBase
      */
     public function traiterConnexion()
     {
+        // Interdire l'accès si l'utilisateur est déjà connecté
+        if (!$this->interdireAccesSiConnecte()) {
+            return;
+        }
+        
         // Vérification si la méthode de la requête est POST
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Récupération des données du formulaire : on suppose un champ "identifiant" au lieu de "email" ou "pseudo"
             $donnees = $this->obtenirDonneesFormulaire(champsRequis: ['identifiant', 'mot_de_passe']);
-    
+
             if ($donnees) {
                 // Récupérer l'identifiant (pseudo ou email) et le mot de passe
                 $identifiant = $donnees['identifiant'];
                 $motDePasse = $donnees['mot_de_passe'];
-    
+
                 // Vérifier la connexion via le modèle (logique interne : email OU pseudo)
                 $utilisateur = $this->utilisateurModele->verifierConnexion($identifiant, $motDePasse);
-    
+
                 if ($utilisateur) {
                     // Si l'utilisateur est authentifié avec succès,
                     // on stocke les informations de l'utilisateur dans la session
@@ -68,7 +78,7 @@ class ConnexionControleur extends ControleurBase
                         'email'         => $utilisateur['email'],
                         'pmr'           => $utilisateur['pmr'] ?? null
                     ];
-    
+
                     // Redirection vers la page de profil
                     Reponses::rediriger('profil', [], "Connexion réussie !");
                     return;
@@ -88,5 +98,4 @@ class ConnexionControleur extends ControleurBase
             Reponses::rediriger('connexion');
         }
     }
-    
 }

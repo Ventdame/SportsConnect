@@ -1,8 +1,8 @@
 <?php
-
 namespace App\Core;
 
 use App\Controleur\NavbarControleur;
+use App\Securite\CSRFProtection;
 
 /**
  * Classe VueBase
@@ -224,6 +224,9 @@ abstract class VueBase
      */
     protected function afficherPiedDePage($scripts = [])
     {
+        // Ajouter script de protection contre la manipulation des formulaires
+        echo $this->ajouterScriptsSecurite();
+        
         ?>
         <footer class="footer">
             <p>&copy; <?php echo date('Y'); ?> SportConnect - Tous droits réservés, fait avec amour ❤</p>
@@ -284,5 +287,205 @@ abstract class VueBase
     {
         $dateObj = new \DateTime($date);
         return $dateObj->format($format);
+    }
+    
+    /**
+     * Génère les champs cachés pour la protection CSRF
+     * 
+     * @param string $formName Nom du formulaire
+     * @return string HTML des champs cachés
+     */
+    protected function genererChampsCSRF($formName) {
+        $token = CSRFProtection::genererToken($formName);
+        return '<input type="hidden" name="csrf_token" value="' . $this->e($token) . '">' .
+               '<input type="hidden" name="form_name" value="' . $this->e($formName) . '">';
+    }
+    
+    /**
+     * Génère un formulaire sécurisé
+     * 
+     * @param string $action URL d'action
+     * @param string $formName Nom du formulaire
+     * @param string $method Méthode HTTP
+     * @param string $content Contenu du formulaire
+     * @param array $attributes Attributs supplémentaires
+     * @return string HTML du formulaire
+     */
+    protected function genererFormulaire($action, $formName, $method = 'POST', $content = '', $attributes = []) {
+        $attributesStr = '';
+        foreach ($attributes as $key => $value) {
+            $attributesStr .= ' ' . $this->e($key) . '="' . $this->e($value) . '"';
+        }
+        
+        $html = '<form action="' . $this->e($action) . '" method="' . $this->e($method) . '"' . $attributesStr . '>';
+        
+        if (strtoupper($method) === 'POST') {
+            $html .= $this->genererChampsCSRF($formName);
+        }
+        
+        $html .= $content . '</form>';
+        
+        return $html;
+    }
+    
+    /**
+     * Génère un input pour un ID sécurisé
+     * 
+     * @param string $token Token sécurisé
+     * @return string HTML de l'input caché
+     */
+    protected function genererInputIDSecurise($token) {
+        return '<input type="hidden" name="secure_token" value="' . $this->e($token) . '">';
+    }
+    
+    /**
+     * Ajoute des scripts JavaScript de sécurité
+     * 
+     * @return string Balises script pour les protections côté client
+     */
+    protected function ajouterScriptsSecurite() {
+        return '<script>
+// Empêcher la modification des formulaires via la console
+            document.addEventListener("DOMContentLoaded", function() {
+                // Protection des formulaires
+                const forms = document.querySelectorAll("form");
+                forms.forEach(function(form) {
+                    // Créer une copie des champs du formulaire pour vérifier les modifications
+                    const originalFields = Array.from(form.elements).map(function(el) {
+                        return {
+                            name: el.name,
+                            type: el.type,
+                            required: el.required,
+                            value: el.value
+                        };
+                    });
+                    
+                    // Vérifier l\'intégrité du formulaire avant soumission
+                    form.addEventListener("submit", function(e) {
+                        let formValid = true;
+                        
+                        // Vérifier que les champs n\'ont pas été modifiés en structure
+                        Array.from(form.elements).forEach(function(el, index) {
+                            if (index < originalFields.length) {
+                                if (el.name !== originalFields[index].name || 
+                                    el.type !== originalFields[index].type ||
+                                    el.required !== originalFields[index].required) {
+                                    formValid = false;
+                                }
+                            }
+                        });
+                        
+                        // Vérifier que le formulaire a le même nombre de champs
+                        if (form.elements.length !== originalFields.length) {
+                            formValid = false;
+                        }
+                        
+                        // Si le formulaire a été altéré, annuler la soumission
+                        if (!formValid) {
+                            e.preventDefault();
+                            alert("Le formulaire a été modifié de manière incorrecte. La page va être rechargée.");
+                            window.location.reload();
+                        }
+                    });
+                });
+                
+                // Protection contre la modification des inputs
+                const inputs = document.querySelectorAll("input[type=\'hidden\']");
+                inputs.forEach(function(input) {
+                    // Surveiller les changements d\'attributs
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.attributeName === "type" || 
+                                mutation.attributeName === "value" || 
+                                mutation.attributeName === "name") {
+                                console.error("Tentative de modification d\'un champ caché détectée");
+                                // Restaurer l\'état original
+                                input.type = "hidden";
+                                
+                                // Recharger la page pour empêcher toute manipulation
+                                window.location.reload();
+                            }
+                        });
+                    });
+                    
+                    // Configurer l\'observation des attributs
+                    observer.observe(input, { attributes: true });
+                    
+                    // Empêcher de modifier la valeur via JavaScript
+                    const originalValue = input.value;
+                    const originalType = input.type;
+                    
+                    Object.defineProperty(input, "value", {
+                        get: function() {
+                            return originalValue;
+                        },
+                        set: function(newValue) {
+                            console.error("Tentative de modification de la valeur d\'un champ caché");
+                            return originalValue;
+                        }
+                    });
+                    
+                    Object.defineProperty(input, "type", {
+                        get: function() {
+                            return originalType;
+                        },
+                        set: function(newType) {
+                            if (newType !== "hidden") {
+                                console.error("Tentative de modification du type d\'un champ caché");
+                                window.location.reload();
+                            }
+                            return originalType;
+                        }
+                    });
+                });
+                
+                // Empêcher la surcharge des méthodes standard de manipulation du DOM
+                const originalQuerySelector = document.querySelector;
+                const originalGetElementById = document.getElementById;
+                
+                document.querySelector = function(selector) {
+                    if (selector.includes("input[type=\'hidden\']") || 
+                        selector.includes("[name=\'secure_token\']") || 
+                        selector.includes("[name=\'csrf_token\']")) {
+                        console.error("Tentative de sélection de champs sécurisés");
+                        return null;
+                    }
+                    return originalQuerySelector.call(document, selector);
+                };
+                
+                document.getElementById = function(id) {
+                    const element = originalGetElementById.call(document, id);
+                    if (element && element.type === "hidden" && 
+                        (element.name === "secure_token" || element.name === "csrf_token" || element.name === "form_name")) {
+                        console.error("Tentative d\'accès à un élément sécurisé");
+                        return null;
+                    }
+                    return element;
+                };
+                
+                // Protection contre le debug et les outils de développement
+                function detectDevTools() {
+                    const threshold = 160;
+                    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+                    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+                    
+                    if (widthThreshold || heightThreshold) {
+                        // Si les outils de développement sont détectés, ajouter une protection supplémentaire
+                        const securityInterval = setInterval(function() {
+                            const hiddenInputs = document.querySelectorAll("input[type=\'hidden\']");
+                            hiddenInputs.forEach(function(input) {
+                                if (input.type !== "hidden") {
+                                    input.type = "hidden";
+                                    window.location.reload();
+                                }
+                            });
+                        }, 1000);
+                    }
+                }
+                
+                window.addEventListener("resize", detectDevTools);
+                detectDevTools();
+            });
+        </script>';
     }
 }

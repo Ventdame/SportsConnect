@@ -47,7 +47,7 @@ class InscriptionVue extends VueBase
                     </div>
                 <?php endif; ?>
 
-                <form action="?page=inscriptions&action=traiter" method="POST" class="inscription-form">
+                <form action="?page=inscriptions&action=traiterInscription" method="POST" class="inscription-form">
                     <!-- Champ pour le pseudo -->
                     <div class="form-group">
                         <label for="pseudo" class="form-label">Pseudo</label>
