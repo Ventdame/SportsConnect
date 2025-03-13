@@ -38,7 +38,7 @@ class ReservationModele extends FabriqueBase
                     DATE_FORMAT(e.date_evenement, '%d.%m.%Y') AS date,
                     e.description,
                     CONCAT(le.nom_localisation_evenement, ' - ', le.ville) AS localisation,
-                    CASE WHEN e.pmr_accessible = 1 THEN 'Oui' ELSE 'Non' END AS pmr_accessible,
+                    CASE WHEN s.pmr = 1 THEN 'Oui' ELSE 'Non' END AS pmr_accessible,
                     e.montant AS prix
                 FROM evenements e
                 JOIN localisations_evenements le ON e.id_localisation = le.id_localisation
@@ -72,6 +72,7 @@ class ReservationModele extends FabriqueBase
             $pmrValue = 0;
         }
         
+        // Filtrer seulement sur le PMR du sport, pas sur celui de la localisation
         $sql .= " AND s.pmr = :pmrValue";
         $params[':pmrValue'] = $pmrValue;
     

@@ -37,13 +37,27 @@ class EvenementModele extends FabriqueBase
      */
     public function creerEvenement($nomEvenement, $dateEvenement, $description, $idLocalisation, $idSport, $pmrAccessible, $montant, $idUtilisateur)
     {
+        
+        if ($idLocalisation) {
+            try {
+                
+                $localisationFabrique = new FabriqueBase($this->pdo, 'localisations_evenements', 'id_localisation');
+                
+            // Mettre à jour le statut PMR de la localisation
+                $localisationFabrique->mettreAJour($idLocalisation, ['PMR' => $pmrAccessible]);
+            } catch (\Exception $e) {
+                // Journaliser l'erreur mais continuer
+                error_log("Erreur lors de la mise à jour du statut PMR de la localisation: " . $e->getMessage());
+            }
+        }
+        
+        
         $donnees = [
             'nom_evenement' => $nomEvenement,
             'date_evenement' => $dateEvenement,
             'description' => $description ?: null,
             'id_localisation' => $idLocalisation,
             'id_sport' => $idSport,
-            'pmr_accessible' => $pmrAccessible,
             'montant' => $montant,
             'id_utilisateur' => $idUtilisateur,
         ];

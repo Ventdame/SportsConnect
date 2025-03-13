@@ -18,8 +18,9 @@ class CSRFProtection {
         $token = bin2hex(random_bytes(32));
         $_SESSION['csrf_tokens'][$formName] = [
             'token' => $token,
-            'expires' => time() + 3600 // Expire après 1 heure
+            'expires' => time() + 7200 
         ];
+        
         
         return $token;
     }

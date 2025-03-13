@@ -72,14 +72,14 @@ class ProfilVue extends VueBase
      */
     protected function afficherHero($sousTitre = null)
     {
-        ?>
+?>
         <header class="hero">
             <div class="hero-content">
                 <h1>Bienvenue sur votre espace, <?php echo $this->e($this->utilisateur['prenom']); ?></h1>
                 <p>Gérez vos réservations et créez de nouveaux événements sportifs</p>
             </div>
         </header>
-        <?php
+    <?php
     }
 
     /**
@@ -87,7 +87,7 @@ class ProfilVue extends VueBase
      */
     protected function afficherContenu()
     {
-        ?>
+    ?>
         <!-- CONTENU PRINCIPAL -->
         <main class="container main-profil">
             <!-- Nouvelle structure en grille -->
@@ -189,7 +189,7 @@ class ProfilVue extends VueBase
                                             placeholder="Montant en €" />
                                     </div>
                                 </div>
-                                
+
                                 <div class="form-row">
                                     <!-- Nombre maximum de participants -->
                                     <div class="event-form-group">
@@ -213,10 +213,10 @@ class ProfilVue extends VueBase
                                         <i class="fa-solid fa-align-left"></i> Description
                                     </label>
                                     <textarea id="description"
-                                            name="description"
-                                            class="event-form-control"
-                                            placeholder="Description de l'événement"
-                                            rows="4"></textarea>
+                                        name="description"
+                                        class="event-form-control"
+                                        placeholder="Description de l'événement"
+                                        rows="4"></textarea>
                                 </div>
 
                                 <!-- Accessibilité PMR -->
@@ -325,7 +325,7 @@ class ProfilVue extends VueBase
 
                         <div class="events-tabs">
                             <div class="event-tab <?php echo $aDesReservations ? 'active' : ''; ?>" data-tab="tab-reservations">
-                                <i class="fa-solid fa-ticket"></i> Réservations 
+                                <i class="fa-solid fa-ticket"></i> Réservations
                                 <span class="event-badge"><?php echo count($this->reservations); ?></span>
                             </div>
                             <div class="event-tab <?php echo !$aDesReservations && $aDesCreations ? 'active' : ''; ?>" data-tab="tab-creations">
@@ -358,10 +358,10 @@ class ProfilVue extends VueBase
                                                         <div><?php echo $this->e($evenement['localisation']); ?></div>
                                                     </div>
                                                     <?php if (!empty($evenement['description'])): ?>
-                                                    <div class="event-detail full-width">
-                                                        <div class="label"><i class="fa-solid fa-align-left"></i> Description</div>
-                                                        <div><?php echo $this->e($evenement['description']); ?></div>
-                                                    </div>
+                                                        <div class="event-detail full-width">
+                                                            <div class="label"><i class="fa-solid fa-align-left"></i> Description</div>
+                                                            <div><?php echo $this->e($evenement['description']); ?></div>
+                                                        </div>
                                                     <?php endif; ?>
                                                 </div>
                                                 <div class="event-card-footer">
@@ -408,19 +408,17 @@ class ProfilVue extends VueBase
                                                         <div><?php echo $this->e($evenement['localisation']); ?></div>
                                                     </div>
                                                     <?php if (!empty($evenement['description'])): ?>
-                                                    <div class="event-detail full-width">
-                                                        <div class="label"><i class="fa-solid fa-align-left"></i> Description</div>
-                                                        <div><?php echo $this->e($evenement['description']); ?></div>
-                                                    </div>
+                                                        <div class="event-detail full-width">
+                                                            <div class="label"><i class="fa-solid fa-align-left"></i> Description</div>
+                                                            <div><?php echo $this->e($evenement['description']); ?></div>
+                                                        </div>
                                                     <?php endif; ?>
                                                 </div>
-                                                <div class="event-card-footer">
-                                                    <form method="POST" action="?page=evenement&action=supprimer_evenement_creer_utilisateur" class="form-supprimer">
-                                                        <input type="hidden" name="id_evenement" value="<?php echo $this->e($evenement['id_evenement']); ?>">
-                                                        <button type="submit" class="btn-supprimer">
-                                                            <i class="fa-solid fa-trash"></i> Supprimer
-                                                        </button>
-                                                    </form>
+                                                <a href="?page=evenement&action=supprimer_evenement_creer_utilisateur&id_evenement=<?php echo $this->e($evenement['id_evenement']); ?>" 
+   class="btn-supprimer"
+   onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
+   <i class="fa-solid fa-trash"></i> Supprimer
+</a>
                                                 </div>
                                             </div>
                                         <?php endforeach; ?>
@@ -437,7 +435,7 @@ class ProfilVue extends VueBase
                 </div>
             </div>
         </main>
-        <?php
+    <?php
     }
 
     /**
@@ -447,26 +445,26 @@ class ProfilVue extends VueBase
     {
         // Ajout du script JavaScript pour les onglets et la gestion des localisations
         $scriptsFooter[] = 'JS/script.js';
-        
+
         parent::afficher($styles, $scripts, $scriptsFooter);
-        
+
         // Script inline spécifique à la page de profil
-        ?>
+    ?>
         <script>
             // Script pour l'interaction des onglets
             document.addEventListener('DOMContentLoaded', function() {
                 const tabBtns = document.querySelectorAll('.event-tab');
-                
+
                 tabBtns.forEach(btn => {
                     btn.addEventListener('click', function() {
                         // Supprimer la classe active de tous les boutons et contenus
                         document.querySelectorAll('.event-tab, .tab-pane').forEach(el => {
                             el.classList.remove('active');
                         });
-                        
+
                         // Ajouter la classe active au bouton cliqué
                         this.classList.add('active');
-                        
+
                         // Afficher le contenu correspondant
                         const tabId = this.getAttribute('data-tab');
                         document.getElementById(tabId).classList.add('active');
@@ -488,11 +486,11 @@ class ProfilVue extends VueBase
 
                 radioExistante.addEventListener('change', updateLocalisationFields);
                 radioNouvelle.addEventListener('change', updateLocalisationFields);
-                
+
                 // Initialisation au chargement
                 updateLocalisationFields();
             });
         </script>
-        <?php
+<?php
     }
 }

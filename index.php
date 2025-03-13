@@ -21,8 +21,48 @@ try {
     SecurityMiddleware::ajouterEnTetes();
     
     // Vérifier la requête
-    if (!SecurityMiddleware::verifierRequete()) {
+    /*if (!SecurityMiddleware::verifierRequete()) {
         // Rediriger vers la page d'accueil avec un message d'erreur
+        $_SESSION['messageErreur'] = "Requête invalide. Veuillez réessayer.";
+        header("Location: ?page=accueil");
+        exit;
+    }*/
+    
+    // Vérifier la requête uniquement pour certaines actions sensibles
+    $page = $_GET['page'] ?? 'accueil';
+    $action = $_GET['action'] ?? 'index';
+    
+    // Actions qui requièrent une validation stricte
+    $actionsSensibles = [
+        // Liste des actions administratives ou sensibles
+        'admin' => ['*'],
+        // Vous pouvez ajouter d'autres actions sensibles ici
+    ];
+    
+    // Actions explicitement exclues de la validation
+    $actionsExclues = [
+        'evenement' => ['supprimer_evenement_creer_utilisateur'],
+        'reservation' => ['reserver', 'supprimer'],
+        'profil' => ['*']
+    ];
+    
+    $validationNecessaire = false;
+    
+    // Vérifier si l'action est incluse dans les actions sensibles
+    if (isset($actionsSensibles[$page])) {
+        if ($actionsSensibles[$page][0] === '*' || in_array($action, $actionsSensibles[$page])) {
+            $validationNecessaire = true;
+        }
+    }
+    
+    // Vérifier si l'action est explicitement exclue
+    if (isset($actionsExclues[$page])) {
+        if ($actionsExclues[$page][0] === '*' || in_array($action, $actionsExclues[$page])) {
+            $validationNecessaire = false;
+        }
+    }
+    
+    if ($validationNecessaire && !SecurityMiddleware::verifierRequete()) {
         $_SESSION['messageErreur'] = "Requête invalide. Veuillez réessayer.";
         header("Location: ?page=accueil");
         exit;

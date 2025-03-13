@@ -141,9 +141,10 @@ class ReservationVue extends VueBase
                                 if ($this->utilisateur) {
                                     echo $this->genererFormulaire(
                                         '?page=reservation&action=reserver',
-                                        'reservation_' . $reservation['secure_token'],
+                                        'reservation_' . $reservation['secure_token'], 
                                         'POST',
                                         $this->genererInputIDSecurise($reservation['secure_token']) .
+                                        $this->genererChampsCSRF('reservation_' . $reservation['secure_token']) . 
                                         '<button type="submit" class="btn-reserver">Réserver</button>'
                                     );
                                 } else {

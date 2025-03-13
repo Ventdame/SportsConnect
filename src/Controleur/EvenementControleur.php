@@ -109,40 +109,41 @@ class EvenementControleur extends ControleurBase
         }
     }
 
-    /**
-     * Supprime un événement créé par un utilisateur
-     */
-    public function supprimer_evenement_creer_utilisateur()
-    {
-        // Vérifier si l'utilisateur est connecté
-        if (!$this->exigerConnexion()) {
-            return;
-        }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $idEvenement = $_POST['id_evenement'] ?? null;
-
-                if (empty($idEvenement)) {
-                    throw new \Exception("ID de l'événement requis pour la suppression.");
-                }
-
-                $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
-
-                // Supprime l'événement s'il appartient à l'utilisateur connecté
-                $resultat = $this->evenementModele->supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisateur);
-
-                if ($resultat) {
-                    $this->ajouterMessageReussite("L'événement a été supprimé avec succès.");
-                } else {
-                    $this->ajouterMessageErreur("Impossible de supprimer l'événement.");
-                }
-            } catch (\Exception $e) {
-                $this->ajouterMessageErreur("Erreur : " . $e->getMessage());
-            }
-        }
-
-        // Redirection vers le profil
-        Reponses::rediriger('profil');
+/**
+ * Supprime un événement créé par un utilisateur
+ */
+public function supprimer_evenement_creer_utilisateur()
+{
+    
+    if (!$this->exigerConnexion()) {
+        return;
     }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        try {
+            $idEvenement = $_POST['id_evenement'] ?? null;
+
+            if (empty($idEvenement)) {
+                throw new \Exception("ID de l'événement requis pour la suppression.");
+            }
+
+            $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
+
+            // Supprime l'événement s'il appartient à l'utilisateur connecté
+            $resultat = $this->evenementModele->supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisateur);
+
+            if ($resultat) {
+                $this->ajouterMessageReussite("L'événement a été supprimé avec succès.");
+            } else {
+                $this->ajouterMessageErreur("Impossible de supprimer l'événement.");
+            }
+        } catch (\Exception $e) {
+            $this->ajouterMessageErreur("Erreur : " . $e->getMessage());
+        }
+    }
+
+    // Redirection vers le profil
+    Reponses::rediriger('profil');
+}
 }
