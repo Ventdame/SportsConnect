@@ -414,25 +414,27 @@ class ProfilVue extends VueBase
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
-                                                <a href="?page=evenement&action=supprimer_evenement_creer_utilisateur&id_evenement=<?php echo $this->e($evenement['id_evenement']); ?>" 
-   class="btn-supprimer"
-   onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
-   <i class="fa-solid fa-trash"></i> Supprimer
-</a>
-                                                </div>
+                                                <!-- Remplacer le lien actuel par un formulaire -->
+                                                <form method="POST" action="?page=evenement&action=supprimer_evenement_creer_utilisateur" style="display: inline;">
+                                                    <input type="hidden" name="id_evenement" value="<?php echo $this->e($evenement['id_evenement']); ?>">
+                                                    <button type="submit" class="btn-supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
+                                                        <i class="fa-solid fa-trash"></i> Supprimer
+                                                    </button>
+                                                </form>
                                             </div>
-                                        <?php endforeach; ?>
                                     </div>
-                                <?php else: ?>
-                                    <div class="empty-state">
-                                        <i class="fa-solid fa-calendar-plus empty-icon"></i>
-                                        <p style="color: red; font-weight: bold;">Vous n'avez aucuns événements créés</p>
-                                    </div>
-                                <?php endif; ?>
+                                <?php endforeach; ?>
                             </div>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fa-solid fa-calendar-plus empty-icon"></i>
+                                <p style="color: red; font-weight: bold;">Vous n'avez aucuns événements créés</p>
+                            </div>
+                        <?php endif; ?>
                         </div>
-                    </section>
                 </div>
+                </section>
+            </div>
             </div>
         </main>
     <?php

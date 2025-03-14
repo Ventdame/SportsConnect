@@ -78,23 +78,48 @@ class EvenementModele extends FabriqueBase
      * @param int $idUtilisateur Identifiant de l'utilisateur
      * @return bool Succès ou échec de l'opération
      */
-    public function supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisateur)
-    {
-        $sql = "DELETE FROM {$this->table} WHERE id_evenement = :id_evenement AND id_utilisateur = :id_utilisateur";
-
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':id_evenement' => $idEvenement,
-                ':id_utilisateur' => $idUtilisateur,
-            ]);
-
-            return $stmt->rowCount() > 0; // Retourne true si une ligne a été supprimée
-        } catch (\PDOException $e) {
-            error_log("Erreur lors de la suppression de l'événement : " . $e->getMessage());
-            return false;
+/**
+ * Supprime un événement créé par un utilisateur
+ * 
+ * @param int $idEvenement Identifiant de l'événement
+ * @param int $idUtilisateur Identifiant de l'utilisateur
+ * @return bool Succès ou échec de l'opération
+ */
+public function supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisateur)
+{
+    try {
+        // Vérifier d'abord si l'événement existe et appartient à l'utilisateur
+        $sql = "SELECT id_evenement FROM {$this->table} 
+                WHERE id_evenement = :id_evenement AND id_utilisateur = :id_utilisateur";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':id_evenement', $idEvenement, \PDO::PARAM_INT);
+        $stmt->bindParam(':id_utilisateur', $idUtilisateur, \PDO::PARAM_INT);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() === 0) {
+            return false; // L'événement n'existe pas ou n'appartient pas à l'utilisateur
         }
+        
+        // Supprimer d'abord les réservations associées à cet événement
+        $sqlDeleteParticipants = "DELETE FROM participants_evenement WHERE id_evenement = :id_evenement";
+        $stmtDeleteParticipants = $this->pdo->prepare($sqlDeleteParticipants);
+        $stmtDeleteParticipants->bindParam(':id_evenement', $idEvenement, \PDO::PARAM_INT);
+        $stmtDeleteParticipants->execute();
+        
+        // Supprimer l'événement
+        $sqlDeleteEvent = "DELETE FROM {$this->table} WHERE id_evenement = :id_evenement AND id_utilisateur = :id_utilisateur";
+        $stmtDeleteEvent = $this->pdo->prepare($sqlDeleteEvent);
+        $stmtDeleteEvent->bindParam(':id_evenement', $idEvenement, \PDO::PARAM_INT);
+        $stmtDeleteEvent->bindParam(':id_utilisateur', $idUtilisateur, \PDO::PARAM_INT);
+        $stmtDeleteEvent->execute();
+        
+        return $stmtDeleteEvent->rowCount() > 0;
+    } catch (\PDOException $e) {
+        error_log("Erreur lors de la suppression de l'événement : " . $e->getMessage());
+        return false;
     }
+}
 
     /**
      * Crée une nouvelle localisation

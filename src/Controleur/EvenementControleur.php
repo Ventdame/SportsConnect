@@ -113,22 +113,34 @@ class EvenementControleur extends ControleurBase
 /**
  * Supprime un événement créé par un utilisateur
  */
+/**
+ * Supprime un événement créé par un utilisateur
+ */
 public function supprimer_evenement_creer_utilisateur()
 {
-    
+    // Vérifier si l'utilisateur est connecté
     if (!$this->exigerConnexion()) {
         return;
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
-            $idEvenement = $_POST['id_evenement'] ?? null;
+            // Récupérer l'ID de l'événement
+            $idEvenement = isset($_POST['id_evenement']) ? intval($_POST['id_evenement']) : null;
 
             if (empty($idEvenement)) {
                 throw new \Exception("ID de l'événement requis pour la suppression.");
             }
 
             $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
+
+            // Vérifier d'abord si l'événement appartient à l'utilisateur
+            $evenement = $this->evenementModele->obtenirEvenementParId($idEvenement);
+            
+            if (!$evenement || $evenement['id_utilisateur'] != $idUtilisateur) 
+            {
+                throw new \Exception("Vous n'êtes pas autorisé à supprimer cet événement.");
+            }
 
             // Supprime l'événement s'il appartient à l'utilisateur connecté
             $resultat = $this->evenementModele->supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisateur);
@@ -141,6 +153,8 @@ public function supprimer_evenement_creer_utilisateur()
         } catch (\Exception $e) {
             $this->ajouterMessageErreur("Erreur : " . $e->getMessage());
         }
+    } else {
+        $this->ajouterMessageErreur("Méthode non autorisée pour cette action.");
     }
 
     // Redirection vers le profil
