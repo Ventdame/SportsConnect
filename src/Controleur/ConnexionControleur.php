@@ -56,7 +56,7 @@ class ConnexionControleur extends ControleurBase
         
         // Vérification si la méthode de la requête est POST
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Récupération des données du formulaire : on suppose un champ "identifiant" au lieu de "email" ou "pseudo"
+            
             $donnees = $this->obtenirDonneesFormulaire(champsRequis: ['identifiant', 'mot_de_passe']);
 
             if ($donnees) {
@@ -76,7 +76,8 @@ class ConnexionControleur extends ControleurBase
                         'pseudo'        => $utilisateur['pseudo'],
                         'prenom'        => $utilisateur['prenom'],
                         'email'         => $utilisateur['email'],
-                        'pmr'           => $utilisateur['pmr'] ?? null
+                        'pmr'           => $utilisateur['pmr'] ?? null,
+                        'sexe'          => $utilisateur['sexe'] ?? 'A'
                     ];
 
                     // Redirection vers la page de profil

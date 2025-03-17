@@ -80,6 +80,7 @@ abstract class VueBase
             
             <!-- Styles de base -->
             <link rel="stylesheet" href="CSS/style.css">
+            <link rel="stylesheet" href="CSS/notifications.css">
             
             <!-- Styles supplémentaires -->
             <?php foreach ($styles as $style): ?>
@@ -234,6 +235,7 @@ abstract class VueBase
 
         <!-- Scripts JavaScript -->
         <script src="JS/script.js"></script>
+        <script src="JS/notifications.js"></script>
         
         <?php foreach ($scripts as $script): ?>
             <script src="<?php echo htmlspecialchars($script); ?>"></script>

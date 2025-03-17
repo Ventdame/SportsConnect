@@ -87,6 +87,7 @@ class ProfilVue extends VueBase
      */
     protected function afficherContenu()
     {
+        var_dump($this->utilisateur);
     ?>
         <!-- CONTENU PRINCIPAL -->
         <main class="container main-profil">
@@ -122,7 +123,26 @@ class ProfilVue extends VueBase
                                     <?php endif; ?>
                                 </div>
                             </div>
-                        </div>
+                            <div class="profile-field">
+                                <div class="profile-label">SEXE</div>
+                                <div class="profile-value">
+                                    <?php
+                                    $sexeLabel = '';
+                                    switch ($this->utilisateur['sexe'] ?? 'A') {
+                                        case 'H':
+                                            $sexeLabel = 'Homme';
+                                            break;
+                                        case 'F':
+                                            $sexeLabel = 'Femme';
+                                            break;
+                                        default:
+                                            $sexeLabel = 'Non spécifié';
+                                            break;
+                                    }
+                                    echo $this->e($sexeLabel);
+                                    ?>
+                                </div>
+                            </div>
                     </section>
 
                     <!-- FORMULAIRE DE CRÉATION D'ÉVÉNEMENT -->

@@ -32,10 +32,11 @@ class EvenementModele extends FabriqueBase
      * @param int $pmrAccessible
      * @param float $montant
      * @param int $idUtilisateur
+     * @param int $maxParticipants Nombre maximum de participants
      * @return int L'ID de l'événement créé
      * @throws \Exception
      */
-    public function creerEvenement($nomEvenement, $dateEvenement, $description, $idLocalisation, $idSport, $pmrAccessible, $montant, $idUtilisateur)
+    public function creerEvenement($nomEvenement, $dateEvenement, $description, $idLocalisation, $idSport, $pmrAccessible, $montant, $idUtilisateur, $maxParticipants = 10)
     {
         
         if ($idLocalisation) {
@@ -60,6 +61,7 @@ class EvenementModele extends FabriqueBase
             'id_sport' => $idSport,
             'montant' => $montant,
             'id_utilisateur' => $idUtilisateur,
+            'max_participants' => $maxParticipants,
         ];
         
         $result = $this->creer($donnees);

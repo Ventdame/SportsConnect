@@ -6,6 +6,7 @@ use App\Core\ControleurBase;
 use App\Core\Reponses;
 use App\Fabrique\ReservationModele;
 use App\Fabrique\SportModele;
+use App\Fabrique\NotificationModele;
 use App\Vues\ReservationVue;
 use App\Securite\CSRFProtection;
 
@@ -30,6 +31,7 @@ class ReservationControleur extends ControleurBase
     {
         parent::__construct($pdo);
         $this->reservationModele = new ReservationModele($pdo);
+        $this->notificationModele = new NotificationModele($pdo);
     }
 
     /**
@@ -37,16 +39,24 @@ class ReservationControleur extends ControleurBase
      */
     public function index()
     {
+        
         $ville = $_GET['ville'] ?? null;
         $sport = $_GET['sport'] ?? null;
         $date = $_GET['date'] ?? null;
 
-        // Récupérer le statut PMR de l'utilisateur
+        // Récupérer le statut PMR et le sexe de l'utilisateur
         $pmrSession = $this->utilisateurConnecte['pmr'] ?? 'non';
+        $sexeUtilisateur = $this->utilisateurConnecte['sexe'] ?? 'A';
 
         try {
-            // Récupérer les réservations
-            $reservations = $this->reservationModele->rechercherReservations($ville, $sport, $date, $pmrSession);
+            // Récupérer les réservations avec tous les paramètres
+            $reservations = $this->reservationModele->rechercherReservations(
+                $ville,
+                $sport,
+                $date,
+                $pmrSession,
+                $sexeUtilisateur
+            );
 
             // Sécuriser les réservations et ajouter les informations sur les participants
             foreach ($reservations as &$reservation) {
@@ -115,8 +125,15 @@ class ReservationControleur extends ControleurBase
                     $this->ajouterMessageErreur("Vous vous êtes déjà inscrit à cet événement.");
                 } else {
                     // Ajouter la réservation
-                    $this->reservationModele->ajouterReservation($idEvenement, $idUtilisateur);
-                    $this->ajouterMessageReussite("Inscription réussie !");
+                    $success = $this->reservationModele->ajouterReservation($idEvenement, $idUtilisateur);
+                    
+                    if ($success) {
+                        // Créer une notification pour le créateur de l'événement
+                        $this->notificationModele->creerNotificationInscription($idUtilisateur, $idEvenement);
+                        $this->ajouterMessageReussite("Inscription réussie !");
+                    } else {
+                        $this->ajouterMessageErreur("Erreur lors de l'inscription.");
+                    }
                 }
 
                 Reponses::rediriger('reservation');
@@ -154,27 +171,6 @@ class ReservationControleur extends ControleurBase
                     if (isset($_POST['id_evenement'])) {
                         $idEvenement = intval($_POST['id_evenement']);
                     } else {
-                        throw new \Exception("ID de l'événement introuvable.");
-                    }
-                }
-
-                $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
-
-                // Supprimer la réservation
-                $reservationSupprimee = $this->reservationModele->supprimerReservation($idUtilisateur, $idEvenement);
-
-                if ($reservationSupprimee) {
-                    $this->ajouterMessageReussite("La réservation a été supprimée avec succès.");
-                } else {
-                    $this->ajouterMessageErreur("Impossible de supprimer la réservation.");
-                }
-            } catch (\Exception $e) {
-                $this->ajouterMessageErreur("Erreur lors de la suppression : " . $e->getMessage());
-            }
-        }
-
-        Reponses::rediriger('profil');
-    }
 
     /**
      * Méthode de recherche des réservations via AJAX.

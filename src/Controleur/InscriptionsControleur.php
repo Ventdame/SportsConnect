@@ -61,7 +61,9 @@ class InscriptionsControleur extends ControleurBase
                 'prenom',
                 'email',
                 'mot_de_passe',
-                'mot_de_passe_confirmation'
+                'mot_de_passe_confirmation',
+                'sexe'
+
             ]);
 
             if ($donnees) {
@@ -71,6 +73,9 @@ class InscriptionsControleur extends ControleurBase
                 $motDePasse = $donnees['mot_de_passe'];
                 $motDePasseConfirmation = $donnees['mot_de_passe_confirmation'];
                 $pmr = isset($_POST['pmr']) ? 1 : 0;
+                $sexe = $donnees['sexe'] ?? 'A'; 
+
+                //var_dump($_POST, $donnees);
 
                 // Validation des données
                 $erreurs = $this->validerDonnees($pseudo, $prenom, $email, $motDePasse, $motDePasseConfirmation);
@@ -78,8 +83,8 @@ class InscriptionsControleur extends ControleurBase
                 if (empty($erreurs)) {
                     try {
                         // Création de l'utilisateur
-                        $userId = $this->utilisateurModele->creerUtilisateur($pseudo, $prenom, $email, $motDePasse, $pmr);
-
+                        $this->utilisateurModele->creerUtilisateur($pseudo, $prenom, $email, $motDePasse, $pmr, $sexe);
+                        
                         // Ajout du message de succès et redirection
                         $this->ajouterMessageReussite("Inscription réussie ! Vous pouvez maintenant vous connecter.");
                         Reponses::rediriger('connexion');

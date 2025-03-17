@@ -30,7 +30,7 @@ class ReservationModele extends FabriqueBase
      * @param string|int $pmrValue Valeur pour filtrer par statut PMR
      * @return array
      */
-    public function rechercherReservations($ville = null, $sport = null, $date = null, $pmrValue = 0)
+    public function rechercherReservations($ville = null, $sport = null, $date = null, $pmrValue = 0, $sexe = 'H')
     {
         $sql = "SELECT 
                 e.id_evenement,
@@ -39,47 +39,53 @@ class ReservationModele extends FabriqueBase
                 e.description,
                 CONCAT(le.nom_localisation_evenement, ' - ', le.ville) AS localisation,
                 CASE WHEN s.pmr = 1 THEN 'Oui' ELSE 'Non' END AS pmr_accessible,
+                s.genre AS genre_sport,
                 e.montant AS prix
             FROM evenements e
             JOIN localisations_evenements le ON e.id_localisation = le.id_localisation
             JOIN sports s ON e.id_sport = s.id_sport
             WHERE 1=1";
-
+        
+        // Initialiser le tableau de paramètres
         $params = [];
-
-        // Filtrer par ville avec requête préparée
+        
+        // Ajouter le filtre de genre seulement si un sexe est spécifié
+        if ($sexe && $sexe !== 'A') {
+            $sql .= " AND (s.genre = :sexe OR s.genre = 'Mixte')";
+            $params[':sexe'] = $sexe;
+        }
+    
+        // Filtrer par ville si spécifié
         if (!empty($ville)) {
             $sql .= " AND LOWER(le.ville) LIKE :ville";
             $params[':ville'] = '%' . strtolower($ville) . '%';
         }
-
-
-
-        // Filtrer par sport
+    
+        // Filtrer par sport si spécifié
         if (!empty($sport)) {
             $sql .= " AND LOWER(s.nom_sport) = :sport";
             $params[':sport'] = strtolower($sport);
         }
-
-        // Filtrer par date
+    
+        // Filtrer par date si spécifiée
         if (!empty($date)) {
             $sql .= " AND DATE(e.date_evenement) = :date";
             $params[':date'] = $date;
         }
-
-        // Filtrer par PMR
+    
+        // Ajuster pmrValue si nécessaire
         if ($pmrValue === 'oui') {
             $pmrValue = 1;
         } elseif ($pmrValue === 'non') {
             $pmrValue = 0;
         }
-
-        // Filtrer seulement sur le PMR du sport, pas sur celui de la localisation
+    
+        // Filtrer par PMR seulement si c'est spécifié
         $sql .= " AND s.pmr = :pmrValue";
         $params[':pmrValue'] = $pmrValue;
-
+        
         $sql .= " ORDER BY e.date_evenement ASC";
-
+    
         return $this->requetePersonnalisee($sql, $params);
     }
 

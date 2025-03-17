@@ -32,7 +32,7 @@ class UtilisateurModele extends FabriqueBase
      * @return int ID de l'utilisateur créé.
      * @throws \Exception
      */
-    public function creerUtilisateur($pseudo, $prenom, $email, $motDePasse, $pmr)
+    public function creerUtilisateur($pseudo, $prenom, $email, $motDePasse, $pmr, $sexe ='A')
     {
         try {
             $donnees = [
@@ -41,6 +41,7 @@ class UtilisateurModele extends FabriqueBase
                 'email' => $email,
                 'mot_de_passe' => password_hash($motDePasse, PASSWORD_DEFAULT),
                 'pmr' => $pmr,
+                'sexe' => $sexe,
             ];
             
             return $this->creer($donnees);
@@ -68,12 +69,13 @@ class UtilisateurModele extends FabriqueBase
      */
     public function RecupUtilisateurParEmail($email)
     {
-        return $this->requetePersonnalisee(
-            "SELECT id_utilisateur, pseudo, prenom, email, mot_de_passe, pmr 
-             FROM {$this->table} WHERE email = :email",
-            [':email' => $email],
-            false
-        );
+        $sql = "SELECT id_utilisateur, pseudo, prenom, email, mot_de_passe, pmr, sexe 
+                 FROM {$this->table} WHERE email = :email";
+        
+        // Debug - afficher la requête
+        echo "Requête SQL: " . $sql . " avec email = " . $email;
+        
+        return $this->requetePersonnalisee($sql, [':email' => $email], false);
     }
 
     /**
@@ -85,7 +87,7 @@ class UtilisateurModele extends FabriqueBase
 public function RecupUtilisateurParPseudo($pseudo)
 {
     return $this->requetePersonnalisee(
-        "SELECT id_utilisateur, pseudo, prenom, email, mot_de_passe, pmr
+        "SELECT id_utilisateur, pseudo, prenom, email, mot_de_passe, pmr, sexe
          FROM {$this->table}
          WHERE pseudo = :pseudo",
         [':pseudo' => $pseudo],

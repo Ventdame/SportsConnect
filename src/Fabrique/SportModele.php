@@ -80,14 +80,22 @@ class SportModele extends FabriqueBase
     }
 
     /**
-     * Retourne la liste des sports en fonction du profil PMR de l'utilisateur.
+     * Retourne la liste des sports en fonction du profil PMR de l'utilisateur et du sexe de l'utilisateur
      *
      * @param string $pmr 'oui' si l'utilisateur est PMR, 'non' sinon.
      * @return array La liste des sports correspondants.
      */
-    public function obtenirSportsSelonUtilisateur($pmr)
+    public function obtenirSportsSelonUtilisateur($pmr, $sexe = 'A')
     {
         $pmrValeur = ($pmr === 'oui') ? 1 : 0;
-        return $this->obtenirParCriteres(['pmr' => $pmrValeur]);
+        
+        $sql = "SELECT * FROM {$this->table} 
+                WHERE pmr = :pmr 
+                AND (genre = :sexe OR genre = 'Mixte')
+                ORDER BY nom_sport ASC";
+        
+        $params = [':pmr' => $pmrValeur, ':sexe' => $sexe];
+        
+        return $this->requetePersonnalisee($sql, $params);
     }
 }

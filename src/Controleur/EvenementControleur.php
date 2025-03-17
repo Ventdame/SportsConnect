@@ -27,6 +27,7 @@ class EvenementControleur extends ControleurBase
     {
         parent::__construct($pdo);
         $this->evenementModele = new EvenementModele($pdo);
+        $this->notificationModele = new NotificationModele($pdo);
     }
 
     /**
@@ -52,7 +53,7 @@ class EvenementControleur extends ControleurBase
             try {
                 // Récupération des données du formulaire
                 $donnees = $this->obtenirDonneesFormulaire([
-                    'nom_evenement', 'date_evenement', 'id_sport'
+                    'nom_evenement', 'date_evenement', 'id_sport', 'max_participants'
                 ]);
                 
                 if ($donnees) {
@@ -64,6 +65,7 @@ class EvenementControleur extends ControleurBase
                     $idSport = $donnees['id_sport'];
                     $pmrAccessible = $donnees['pmr_accessible'] ?? 0;
                     $montant = $donnees['montant'] ?? 0.0;
+                    $maxParticipants = $donnees['max_participants'] ?? 10;
                     
                     // Si l'utilisateur choisit une nouvelle localisation, la créer
                     if ($localisationType === 'nouvelle') {
@@ -80,7 +82,7 @@ class EvenementControleur extends ControleurBase
                     }
                     
                     // Créer l'événement
-                    $this->evenementModele->creerEvenement(
+                    $idEvenement = $this->evenementModele->creerEvenement(
                         $nomEvenement,
                         $dateEvenement,
                         $description,
@@ -88,10 +90,17 @@ class EvenementControleur extends ControleurBase
                         $idSport,
                         $pmrAccessible,
                         $montant,
-                        $this->utilisateurConnecte['id_utilisateur']
+                        $this->utilisateurConnecte['id_utilisateur'],
+                        $maxParticipants
                     );
                     
                     // Message de succès et redirection
+                    // Créer une notification pour le nouvel événement
+                    $this->notificationModele->creerNotificationCreation(
+                        $this->utilisateurConnecte['id_utilisateur'],
+                        $idEvenement,
+                        $donnees['nom_evenement']
+                    );
                     $this->ajouterMessageReussite("L'événement a été créé avec succès !");
                     Reponses::rediriger('profil');
                 } else {
@@ -116,7 +125,41 @@ class EvenementControleur extends ControleurBase
 /**
  * Supprime un événement créé par un utilisateur
  */
-public function supprimer_evenement_creer_utilisateur()
+public function modifier_evenement()
+    {
+        if (!$this->exigerConnexion()) return;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                $donnees = $this->obtenirDonneesFormulaire(['id_evenement', 'nom_evenement', 'date_evenement']);
+                
+                if ($donnees) {
+                    $evenement = $this->evenementModele->obtenirEvenementParId($donnees['id_evenement']);
+                    
+                    if ($evenement['id_utilisateur'] !== $this->utilisateurConnecte['id_utilisateur']) {
+                        throw new \Exception("Modification non autorisée");
+                    }
+
+                    $this->evenementModele->modifierEvenement($donnees);
+                    
+                    // Notification pour les participants
+                    $this->notificationModele->creerNotificationsModification(
+                        $this->utilisateurConnecte['id_utilisateur'],
+                        $donnees['id_evenement'],
+                        $donnees['nom_evenement']
+                    );
+
+                    $this->ajouterMessageReussite("Événement modifié avec succès");
+                    Reponses::rediriger('profil');
+                }
+            } catch (\Exception $e) {
+                $this->ajouterMessageErreur("Erreur de modification : ".$e->getMessage());
+                Reponses::rediriger('profil');
+            }
+        }
+    }
+
+    public function supprimer_evenement_creer_utilisateur()
 {
     // Vérifier si l'utilisateur est connecté
     if (!$this->exigerConnexion()) {
@@ -142,6 +185,16 @@ public function supprimer_evenement_creer_utilisateur()
                 throw new \Exception("Vous n'êtes pas autorisé à supprimer cet événement.");
             }
 
+            // Récupérer le nom de l'événement pour les notifications
+            $nomEvenement = $evenement['nom_evenement'];
+            
+            // Envoyer des notifications aux participants avant de supprimer l'événement
+            $this->notificationModele->creerNotificationsSuppressionEvenement(
+                $idUtilisateur,
+                $idEvenement,
+                $nomEvenement
+            );
+            
             // Supprime l'événement s'il appartient à l'utilisateur connecté
             $resultat = $this->evenementModele->supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisateur);
 

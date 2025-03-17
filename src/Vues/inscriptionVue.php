@@ -36,7 +36,7 @@ class InscriptionVue extends VueBase
      */
     protected function afficherContenu()
     {
-        ?>
+?>
         <main>
             <div class="inscription-container">
                 <h2 class="inscription-title">Créer un compte</h2>
@@ -51,59 +51,68 @@ class InscriptionVue extends VueBase
                     <!-- Champ pour le pseudo -->
                     <div class="form-group">
                         <label for="pseudo" class="form-label">Pseudo</label>
-                        <input type="text" id="pseudo" name="pseudo" class="inscription-input" 
-                               placeholder="Votre pseudo" 
-                               value="<?php echo empty($this->erreurs) ? '' : $this->e($_POST['pseudo'] ?? ''); ?>" 
-                               required>
+                        <input type="text" id="pseudo" name="pseudo" class="inscription-input"
+                            placeholder="Votre pseudo"
+                            value="<?php echo empty($this->erreurs) ? '' : $this->e($_POST['pseudo'] ?? ''); ?>"
+                            required>
                     </div>
-                    
+
                     <!-- Champ pour le prénom -->
                     <div class="form-group">
                         <label for="prenom" class="form-label">Prénom</label>
-                        <input type="text" id="prenom" name="prenom" class="inscription-input" 
-                               placeholder="Votre prénom" 
-                               value="<?php echo empty($this->erreurs) ? '' : $this->e($_POST['prenom'] ?? ''); ?>" 
-                               required>
+                        <input type="text" id="prenom" name="prenom" class="inscription-input"
+                            placeholder="Votre prénom"
+                            value="<?php echo empty($this->erreurs) ? '' : $this->e($_POST['prenom'] ?? ''); ?>"
+                            required>
                     </div>
-                    
+
                     <!-- Champ pour l'email -->
                     <div class="form-group">
                         <label for="email" class="form-label">Email</label>
-                        <input type="email" id="email" name="email" class="inscription-input" 
-                               placeholder="Votre email" 
-                               value="<?php echo empty($this->erreurs) ? '' : $this->e($_POST['email'] ?? ''); ?>" 
-                               required>
+                        <input type="email" id="email" name="email" class="inscription-input"
+                            placeholder="Votre email"
+                            value="<?php echo empty($this->erreurs) ? '' : $this->e($_POST['email'] ?? ''); ?>"
+                            required>
                     </div>
-                    
+
                     <!-- Champ pour le mot de passe -->
                     <div class="form-group">
                         <label for="mot_de_passe" class="form-label">Mot de passe</label>
-                        <input type="password" id="mot_de_passe" name="mot_de_passe" 
-                               class="inscription-input" placeholder="Votre mot de passe" required>
+                        <input type="password" id="mot_de_passe" name="mot_de_passe"
+                            class="inscription-input" placeholder="Votre mot de passe" required>
                     </div>
-                    
+
                     <!-- Champ pour confirmer le mot de passe -->
                     <div class="form-group">
                         <label for="mot_de_passe_confirmation" class="form-label">Confirmation du mot de passe</label>
-                        <input type="password" id="mot_de_passe_confirmation" name="mot_de_passe_confirmation" 
-                               class="inscription-input" placeholder="Veuillez répéter votre mot de passe" required>
+                        <input type="password" id="mot_de_passe_confirmation" name="mot_de_passe_confirmation"
+                            class="inscription-input" placeholder="Veuillez répéter votre mot de passe" required>
                     </div>
-                    
+
+                    <!-- Champ pour le sexe -->
+                    <select id="sexe" name="sexe" class="inscription-input" required>
+                        <option value="H" <?php echo isset($_POST['sexe']) && $_POST['sexe'] === 'H' ? 'selected' : ''; ?>>Homme</option>
+                        <option value="F" <?php echo isset($_POST['sexe']) && $_POST['sexe'] === 'F' ? 'selected' : ''; ?>>Femme</option>
+                        <option value="A" <?php echo (!isset($_POST['sexe']) || $_POST['sexe'] === 'A') ? 'selected' : ''; ?>>Autre / Ne pas préciser</option>
+                    </select>
+
                     <!-- Case à cocher PMR (Personne à mobilité réduite) -->
                     <div class="form-group-checkbox">
                         <label class="inscription-label">
-                            <input type="checkbox" name="pmr" class="inscription-checkbox" 
-                                   <?php echo isset($_POST['pmr']) && !empty($this->erreurs) ? 'checked' : ''; ?>> 
+                            <input type="checkbox" name="pmr" class="inscription-checkbox"
+                                <?php echo isset($_POST['pmr']) && !empty($this->erreurs) ? 'checked' : ''; ?>>
                             PMR (Personne à mobilité réduite)
                         </label>
                     </div>
-                    
+
+
+
                     <!-- Bouton pour soumettre le formulaire -->
                     <button type="submit" class="inscription-button">S'inscrire</button>
                 </form>
             </div>
         </main>
-        <?php
+<?php
     }
 
     /**
@@ -115,7 +124,7 @@ class InscriptionVue extends VueBase
         if ($sousTitre === null) {
             $sousTitre = "Rejoignez-nous et accédez à des événements exclusifs !";
         }
-        
+
         // Appel de la méthode parente avec le sous-titre personnalisé
         parent::afficherHero($sousTitre);
     }
