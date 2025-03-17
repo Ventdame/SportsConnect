@@ -233,4 +233,56 @@ class NotificationModele extends FabriqueBase
             return false;
         }
     }
+
+    /**
+ * Crée une notification pour l'utilisateur créateur d'un événement
+ * lorsqu'un utilisateur annule sa participation à un événement
+ *
+ * @param int $idUtilisateurSource ID de l'utilisateur qui annule sa participation
+ * @param int $idEvenement ID de l'événement
+ * @return bool Succès ou échec de l'opération
+ */
+public function creerNotificationAnnulation($idUtilisateurSource, $idEvenement)
+{
+    try {
+        // Récupérer l'ID du créateur de l'événement
+        $sql = "SELECT id_utilisateur, nom_evenement FROM evenements WHERE id_evenement = :id_evenement";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id_evenement' => $idEvenement]);
+        $evenement = $stmt->fetch();
+        
+        if (!$evenement) {
+            return false;
+        }
+        
+        $idCreateur = $evenement['id_utilisateur'];
+        $nomEvenement = $evenement['nom_evenement'];
+        
+        // Récupérer le pseudo de l'utilisateur source
+        $sql = "SELECT pseudo FROM utilisateurs WHERE id_utilisateur = :id_utilisateur";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id_utilisateur' => $idUtilisateurSource]);
+        $utilisateur = $stmt->fetch();
+        
+        if (!$utilisateur) {
+            return false;
+        }
+        
+        $pseudoSource = $utilisateur['pseudo'];
+        
+        // Créer le contenu de la notification
+        $contenu = "$pseudoSource a annulé sa participation à votre événement : $nomEvenement";
+        
+        // Créer la notification
+        return (bool) $this->creer([
+            'id_utilisateur_destinataire' => $idCreateur,
+            'id_utilisateur_source' => $idUtilisateurSource,
+            'id_evenement' => $idEvenement,
+            'contenu' => $contenu
+        ]);
+    } catch (\Exception $e) {
+        error_log("Erreur lors de la création de la notification d'annulation : " . $e->getMessage());
+        return false;
+    }
+}
 }

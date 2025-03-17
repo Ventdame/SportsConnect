@@ -5,6 +5,7 @@ namespace App\Controleur;
 use App\Core\ControleurBase;
 use App\Core\Reponses;
 use App\Fabrique\EvenementModele;
+use App\Fabrique\NotificationModele;
 
 /**
  * Contrôleur pour la gestion des événements
@@ -17,6 +18,13 @@ class EvenementControleur extends ControleurBase
      * @var EvenementModele
      */
     private $evenementModele;
+    
+    /**
+     * Instance du modèle NotificationModele
+     * 
+     * @var NotificationModele
+     */
+    private $notificationModele;
 
     /**
      * Constructeur du contrôleur EvenementControleur
@@ -78,7 +86,7 @@ class EvenementControleur extends ControleurBase
                             throw new \Exception("Les champs Nom et Ville pour la localisation doivent être remplis.");
                         }
                         
-                        $idLocalisation = $this->evenementModele->creerLocalisation($nomLocalisation, $ville, $adresse, $codePostal);
+                        $idLocalisation = $this->evenementModele->creerLocalisation($nomLocalisation, $ville, $adresse, $codePostal, $pmrAccessible);
                     }
                     
                     // Créer l'événement
@@ -94,13 +102,13 @@ class EvenementControleur extends ControleurBase
                         $maxParticipants
                     );
                     
-                    // Message de succès et redirection
                     // Créer une notification pour le nouvel événement
                     $this->notificationModele->creerNotificationCreation(
                         $this->utilisateurConnecte['id_utilisateur'],
                         $idEvenement,
                         $donnees['nom_evenement']
                     );
+                    
                     $this->ajouterMessageReussite("L'événement a été créé avec succès !");
                     Reponses::rediriger('profil');
                 } else {
@@ -118,16 +126,14 @@ class EvenementControleur extends ControleurBase
         }
     }
 
-
-/**
- * Supprime un événement créé par un utilisateur
- */
-/**
- * Supprime un événement créé par un utilisateur
- */
-public function modifier_evenement()
+    /**
+     * Modifie un événement existant
+     */
+    public function modifier_evenement()
     {
-        if (!$this->exigerConnexion()) return;
+        if (!$this->exigerConnexion()) {
+            return;
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
@@ -136,11 +142,15 @@ public function modifier_evenement()
                 if ($donnees) {
                     $evenement = $this->evenementModele->obtenirEvenementParId($donnees['id_evenement']);
                     
-                    if ($evenement['id_utilisateur'] !== $this->utilisateurConnecte['id_utilisateur']) {
-                        throw new \Exception("Modification non autorisée");
+                    if (!$evenement) {
+                        throw new \Exception("Événement introuvable");
+                    }
+                    
+                    if ($evenement['id_utilisateur'] != $this->utilisateurConnecte['id_utilisateur']) {
+                        throw new \Exception("Vous n'êtes pas autorisé à modifier cet événement");
                     }
 
-                    $this->evenementModele->modifierEvenement($donnees);
+                    $this->evenementModele->mettreAJourEvenement($donnees['id_evenement'], $donnees);
                     
                     // Notification pour les participants
                     $this->notificationModele->creerNotificationsModification(
@@ -151,66 +161,77 @@ public function modifier_evenement()
 
                     $this->ajouterMessageReussite("Événement modifié avec succès");
                     Reponses::rediriger('profil');
+                } else {
+                    $this->ajouterMessageErreur("Données manquantes pour la modification");
+                    Reponses::rediriger('profil');
                 }
             } catch (\Exception $e) {
-                $this->ajouterMessageErreur("Erreur de modification : ".$e->getMessage());
+                $this->ajouterMessageErreur("Erreur de modification : " . $e->getMessage());
                 Reponses::rediriger('profil');
             }
+        } else {
+            Reponses::rediriger('profil');
         }
     }
 
+    /**
+     * Supprime un événement créé par un utilisateur
+     */
     public function supprimer_evenement_creer_utilisateur()
-{
-    // Vérifier si l'utilisateur est connecté
-    if (!$this->exigerConnexion()) {
-        return;
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        try {
-            // Récupérer l'ID de l'événement
-            $idEvenement = isset($_POST['id_evenement']) ? intval($_POST['id_evenement']) : null;
-
-            if (empty($idEvenement)) {
-                throw new \Exception("ID de l'événement requis pour la suppression.");
-            }
-
-            $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
-
-            // Vérifier d'abord si l'événement appartient à l'utilisateur
-            $evenement = $this->evenementModele->obtenirEvenementParId($idEvenement);
-            
-            if (!$evenement || $evenement['id_utilisateur'] != $idUtilisateur) 
-            {
-                throw new \Exception("Vous n'êtes pas autorisé à supprimer cet événement.");
-            }
-
-            // Récupérer le nom de l'événement pour les notifications
-            $nomEvenement = $evenement['nom_evenement'];
-            
-            // Envoyer des notifications aux participants avant de supprimer l'événement
-            $this->notificationModele->creerNotificationsSuppressionEvenement(
-                $idUtilisateur,
-                $idEvenement,
-                $nomEvenement
-            );
-            
-            // Supprime l'événement s'il appartient à l'utilisateur connecté
-            $resultat = $this->evenementModele->supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisateur);
-
-            if ($resultat) {
-                $this->ajouterMessageReussite("L'événement a été supprimé avec succès.");
-            } else {
-                $this->ajouterMessageErreur("Impossible de supprimer l'événement.");
-            }
-        } catch (\Exception $e) {
-            $this->ajouterMessageErreur("Erreur : " . $e->getMessage());
+    {
+        // Vérifier si l'utilisateur est connecté
+        if (!$this->exigerConnexion()) {
+            return;
         }
-    } else {
-        $this->ajouterMessageErreur("Méthode non autorisée pour cette action.");
-    }
 
-    // Redirection vers le profil
-    Reponses::rediriger('profil');
-}
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                // Récupérer l'ID de l'événement
+                $idEvenement = isset($_POST['id_evenement']) ? intval($_POST['id_evenement']) : null;
+
+                if (empty($idEvenement)) {
+                    throw new \Exception("ID de l'événement requis pour la suppression.");
+                }
+
+                $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
+
+                // Vérifier d'abord si l'événement appartient à l'utilisateur
+                $evenement = $this->evenementModele->obtenirEvenementParId($idEvenement);
+                
+                if (!$evenement) {
+                    throw new \Exception("Événement introuvable.");
+                }
+                
+                if ($evenement['id_utilisateur'] != $idUtilisateur) {
+                    throw new \Exception("Vous n'êtes pas autorisé à supprimer cet événement.");
+                }
+
+                // Récupérer le nom de l'événement pour les notifications
+                $nomEvenement = $evenement['nom_evenement'];
+                
+                // Envoyer des notifications aux participants avant de supprimer l'événement
+                $this->notificationModele->creerNotificationsSuppressionEvenement(
+                    $idUtilisateur,
+                    $idEvenement,
+                    $nomEvenement
+                );
+                
+                // Supprime l'événement s'il appartient à l'utilisateur connecté
+                $resultat = $this->evenementModele->supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisateur);
+
+                if ($resultat) {
+                    $this->ajouterMessageReussite("L'événement a été supprimé avec succès.");
+                } else {
+                    $this->ajouterMessageErreur("Impossible de supprimer l'événement.");
+                }
+            } catch (\Exception $e) {
+                $this->ajouterMessageErreur("Erreur : " . $e->getMessage());
+            }
+        } else {
+            $this->ajouterMessageErreur("Méthode non autorisée pour cette action.");
+        }
+
+        // Redirection vers le profil
+        Reponses::rediriger('profil');
+    }
 }

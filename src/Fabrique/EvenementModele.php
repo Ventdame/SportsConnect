@@ -3,6 +3,7 @@
 namespace App\Fabrique;
 
 use App\Core\FabriqueBase;
+use App\Fabrique\NotificationModele;
 
 /**
  * Classe EvenementModele
@@ -133,7 +134,7 @@ public function supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisate
      * @return int L'ID de la localisation créée
      * @throws \Exception
      */
-    public function creerLocalisation($nomLocalisation, $ville, $adresse = null, $codePostal = null)
+    public function creerLocalisation($nomLocalisation, $ville, $adresse = null, $codePostal = null, $pmrAccessible = false)
     {
         // Créer une instance temporaire de FabriqueBase pour la table des localisations
         $localisationFabrique = new FabriqueBase($this->pdo, 'localisations_evenements', 'id_localisation');
@@ -242,4 +243,76 @@ public function supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisate
     {
         return $this->mettreAJour($idEvenement, $donnees);
     }
-}
+    
+    /**
+     * Approuve un événement
+     *
+     * @param int $idEvenement ID de l'événement à approuver
+     * @param int $idAdministrateur ID de l'administrateur qui approuve
+     * @return bool Succès ou échec de l'opération
+     */
+    public function approuverEvenement($idEvenement, $idAdministrateur)
+    {
+        try {
+            // Mettre à jour le statut de l'événement
+            $resultat = $this->mettreAJour($idEvenement, ['statut' => 'approuve']);
+            
+            if ($resultat) {
+                // Récupérer les informations de l'événement pour la notification
+                $evenement = $this->obtenirEvenementParId($idEvenement);
+                
+                if ($evenement) {
+                    // Créer une notification pour le créateur de l'événement
+                    $notificationModele = new NotificationModele($this->pdo);
+                    $notificationModele->creer([
+                        'id_utilisateur_destinataire' => $evenement['id_utilisateur'],
+                        'id_utilisateur_source' => $idAdministrateur,
+                        'id_evenement' => $idEvenement,
+                        'contenu' => "Votre événement '{$evenement['nom_evenement']}' a été approuvé."
+                    ]);
+                }
+            }
+            
+            return $resultat;
+        } catch (\Exception $e) {
+            error_log("Erreur lors de l'approbation de l'événement : " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Refuse un événement
+     *
+     * @param int $idEvenement ID de l'événement à refuser
+     * @param int $idAdministrateur ID de l'administrateur qui refuse
+     * @param string $motifRefus Motif du refus de l'événement
+     * @return bool Succès ou échec de l'opération
+     */
+    public function refuserEvenement($idEvenement, $idAdministrateur, $motifRefus)
+    {
+        try {
+            // Mettre à jour le statut de l'événement
+            $resultat = $this->mettreAJour($idEvenement, ['statut' => 'refuse']);
+            
+            if ($resultat) {
+                // Récupérer les informations de l'événement pour la notification
+                $evenement = $this->obtenirEvenementParId($idEvenement);
+                
+                if ($evenement) {
+                    // Créer une notification pour le créateur de l'événement
+                    $notificationModele = new NotificationModele($this->pdo);
+                    $notificationModele->creer([
+                        'id_utilisateur_destinataire' => $evenement['id_utilisateur'],
+                        'id_utilisateur_source' => $idAdministrateur,
+                        'id_evenement' => $idEvenement,
+                        'contenu' => "Votre événement '{$evenement['nom_evenement']}' a été refusé. Motif: {$motifRefus}"
+                    ]);
+                }
+            }
+            
+            return $resultat;
+        } catch (\Exception $e) {
+            error_log("Erreur lors du refus de l'événement : " . $e->getMessage());
+            return false;
+        }
+    }

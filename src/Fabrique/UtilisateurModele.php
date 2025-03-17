@@ -69,7 +69,7 @@ class UtilisateurModele extends FabriqueBase
      */
     public function RecupUtilisateurParEmail($email)
     {
-        $sql = "SELECT id_utilisateur, pseudo, prenom, email, mot_de_passe, pmr, sexe 
+        $sql = "SELECT id_utilisateur, pseudo, prenom, email, mot_de_passe, pmr, sexe, role 
                  FROM {$this->table} WHERE email = :email";
         
         // Debug - afficher la requête
@@ -87,7 +87,7 @@ class UtilisateurModele extends FabriqueBase
 public function RecupUtilisateurParPseudo($pseudo)
 {
     return $this->requetePersonnalisee(
-        "SELECT id_utilisateur, pseudo, prenom, email, mot_de_passe, pmr, sexe
+        "SELECT id_utilisateur, pseudo, prenom, email, mot_de_passe, pmr, sexe, role
          FROM {$this->table}
          WHERE pseudo = :pseudo",
         [':pseudo' => $pseudo],

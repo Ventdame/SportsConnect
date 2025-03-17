@@ -4,6 +4,7 @@ namespace App\Controleur;
 
 use App\Core\ControleurBase;
 use App\Core\Reponses;
+use App\Fabrique\EvenementModele;
 use App\Fabrique\ReservationModele;
 use App\Fabrique\SportModele;
 use App\Fabrique\NotificationModele;
@@ -23,6 +24,14 @@ class ReservationControleur extends ControleurBase
     private $reservationModele;
 
     /**
+     * Instance du modèle NotificationModele
+     * 
+     * @var NotificationModele
+     */
+    private $notificationModele;
+
+    private $EvenementModele;
+    /**
      * Constructeur du contrôleur ReservationControleur
      * 
      * @param \PDO $pdo Instance de PDO pour la connexion à la base de données
@@ -32,6 +41,7 @@ class ReservationControleur extends ControleurBase
         parent::__construct($pdo);
         $this->reservationModele = new ReservationModele($pdo);
         $this->notificationModele = new NotificationModele($pdo);
+        $this->EvenementModele = new EvenementModele($pdo);
     }
 
     /**
@@ -39,7 +49,6 @@ class ReservationControleur extends ControleurBase
      */
     public function index()
     {
-        
         $ville = $_GET['ville'] ?? null;
         $sport = $_GET['sport'] ?? null;
         $date = $_GET['date'] ?? null;
@@ -71,7 +80,7 @@ class ReservationControleur extends ControleurBase
 
             // Récupérer les sports disponibles
             $sportModele = new SportModele($this->pdo);
-            $sports = $sportModele->obtenirSportsSelonUtilisateur($pmrSession);
+            $sports = $sportModele->obtenirSportsSelonUtilisateur($pmrSession, $sexeUtilisateur);
 
             // Afficher la vue
             $vue = new ReservationVue(
@@ -101,20 +110,21 @@ class ReservationControleur extends ControleurBase
             try {
                 // Récupérer directement le token sécurisé sans validation complète
                 $secure_token = $_POST['secure_token'] ?? null;
+                $idEvenement = null;
 
-                if (!$secure_token) {
-                    throw new \Exception("Token de sécurité manquant.");
+                if ($secure_token) {
+                    // Récupérer l'ID de l'événement à partir du token sécurisé
+                    $idEvenement = $this->recupererIDSecurise($secure_token, 'evenement');
+                } else if (isset($_POST['id_evenement'])) {
+                    // Backup: utiliser l'ID directement si fourni
+                    $idEvenement = intval($_POST['id_evenement']);
+                } else {
+                    throw new \Exception("Identifiant d'événement manquant.");
                 }
 
-                // Récupérer l'ID de l'événement à partir du token sécurisé
-                $idEvenement = $this->recupererIDSecurise($secure_token, 'evenement');
-
-                // Si l'ID n'est pas trouvé dans la session courante, il a peut-être expiré
-                // ou la session a été réinitialisée
-                if ($idEvenement === false) {
-                    // On pourrait essayer de récupérer l'ID directement si on a une façon de le faire
-                    // Pour l'instant, on signale juste l'erreur
-                    throw new \Exception("Session expirée ou requête invalide. Veuillez réessayer de réserver.");
+                // Vérifier que l'ID est valide
+                if (!$idEvenement || $idEvenement <= 0) {
+                    throw new \Exception("Identifiant d'événement invalide.");
                 }
 
                 // Récupérer l'ID de l'utilisateur connecté
@@ -122,7 +132,7 @@ class ReservationControleur extends ControleurBase
 
                 // Vérifier si l'utilisateur est déjà inscrit
                 if ($this->reservationModele->estDejaInscrit($idUtilisateur, $idEvenement)) {
-                    $this->ajouterMessageErreur("Vous vous êtes déjà inscrit à cet événement.");
+                    $this->ajouterMessageErreur("Vous êtes déjà inscrit à cet événement.");
                 } else {
                     // Ajouter la réservation
                     $success = $this->reservationModele->ajouterReservation($idEvenement, $idUtilisateur);
@@ -155,22 +165,73 @@ class ReservationControleur extends ControleurBase
         if (!$this->exigerConnexion()) {
             return;
         }
-
+    
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 // Récupérer directement l'ID de l'événement sans validation complexe
                 $idEvenement = null;
-
+    
                 // Essayer d'abord de récupérer depuis secure_token si disponible
                 if (isset($_POST['secure_token'])) {
                     $idEvenement = $this->recupererIDSecurise($_POST['secure_token'], 'evenement');
                 }
-
+    
                 // Si aucun ID n'a été trouvé via le token, essayer de le récupérer directement
                 if ($idEvenement === false || $idEvenement === null) {
                     if (isset($_POST['id_evenement'])) {
                         $idEvenement = intval($_POST['id_evenement']);
                     } else {
+                        $this->ajouterMessageErreur("Impossible d'identifier l'événement à supprimer.");
+                        Reponses::rediriger('profil');
+                        return;
+                    }
+                }
+    
+                // Vérifier que l'ID est valide
+                if ($idEvenement <= 0) {
+                    throw new \Exception("Identifiant d'événement invalide.");
+                }
+    
+                $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
+                
+                // Vérifier si l'utilisateur est bien inscrit à cet événement
+                if (!$this->reservationModele->estDejaInscrit($idUtilisateur, $idEvenement)) {
+                    $this->ajouterMessageErreur("Vous n'êtes pas inscrit à cet événement.");
+                    Reponses::rediriger('profil');
+                    return;
+                }
+    
+                // Récupérer les informations de l'événement pour la notification
+                $evenement = $this->EvenementModele->obtenirEvenementParId($idEvenement);
+                
+                // Procéder à la suppression
+                $resultat = $this->reservationModele->supprimerReservation($idUtilisateur, $idEvenement);
+    
+                if ($resultat) {
+                    // Créer une notification pour le créateur de l'événement
+                    if (isset($this->notificationModele) && $evenement) {
+                        $this->notificationModele->creerNotificationAnnulation(
+                            $idUtilisateur,
+                            $idEvenement
+                        );
+                    }
+                    
+                    $this->ajouterMessageReussite("Votre réservation a été annulée avec succès.");
+                } else {
+                    $this->ajouterMessageErreur("Impossible d'annuler votre réservation.");
+                }
+                
+                Reponses::rediriger('profil');
+                
+            } catch (\Exception $e) {
+                $this->ajouterMessageErreur("Erreur lors de l'annulation : " . $e->getMessage());
+                Reponses::rediriger('profil');
+            }
+        } else {
+            // Si la méthode n'est pas POST, rediriger vers la page de profil
+            Reponses::rediriger('profil');
+        }
+    }
 
     /**
      * Méthode de recherche des réservations via AJAX.
@@ -185,11 +246,12 @@ class ReservationControleur extends ControleurBase
         $sport = isset($data['sport']) ? filter_var($data['sport'], FILTER_SANITIZE_STRING) : null;
         $date = isset($data['date']) ? (preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['date']) ? $data['date'] : null) : null;
 
-        // Récupérer statut PMR de l'utilisateur avec valeur par défaut sécurisée
-        $pmr = $_SESSION['utilisateur']['pmr'] ?? 'non';
+        // Récupérer statut PMR et sexe de l'utilisateur avec valeurs par défaut sécurisées
+        $pmr = isset($_SESSION['utilisateur']['pmr']) ? $_SESSION['utilisateur']['pmr'] : 'non';
+        $sexe = isset($_SESSION['utilisateur']['sexe']) ? $_SESSION['utilisateur']['sexe'] : 'A';
 
         // Appeler le modèle avec des paramètres validés
-        $reservations = $this->reservationModele->rechercherReservations($ville, $sport, $date, $pmr);
+        $reservations = $this->reservationModele->rechercherReservations($ville, $sport, $date, $pmr, $sexe);
 
         // Réponse JSON sécurisée
         header('Content-Type: application/json');

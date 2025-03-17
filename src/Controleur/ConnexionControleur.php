@@ -77,7 +77,8 @@ class ConnexionControleur extends ControleurBase
                         'prenom'        => $utilisateur['prenom'],
                         'email'         => $utilisateur['email'],
                         'pmr'           => $utilisateur['pmr'] ?? null,
-                        'sexe'          => $utilisateur['sexe'] ?? 'A'
+                        'sexe'          => $utilisateur['sexe'] ?? 'A',
+                        'role'          => $utilisateur['role'] ?? 'user'
                     ];
 
                     // Redirection vers la page de profil

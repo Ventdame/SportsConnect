@@ -5,6 +5,17 @@ namespace App\Securite;
 
 class SecurityMiddleware {
     /**
+     * Vérifie que l'utilisateur a le rôle administrateur
+     */
+    public function exigerRoleAdmin()
+    {
+        if (!isset($_SESSION['utilisateur']) || $_SESSION['utilisateur']['role'] !== 'administrateur') {
+            Reponses::rediriger('accueil');
+            exit;
+        }
+    }
+
+    /**
      * Effectue les vérifications de sécurité sur chaque requête
      * 
      * @return bool True si la requête est valide

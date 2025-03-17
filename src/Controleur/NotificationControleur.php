@@ -30,27 +30,42 @@ class NotificationControleur extends ControleurBase
     }
 
     /**
+     * Méthode par défaut qui redirige vers l'accueil
+     */
+    public function index()
+    {
+        Reponses::rediriger('accueil');
+    }
+
+    /**
      * Méthode pour obtenir les notifications non lues via AJAX
      */
     public function obtenirNotificationsAjax()
     {
         // Vérifier si l'utilisateur est connecté
         if (!$this->estConnecte()) {
-            echo json_encode(['error' => 'Utilisateur non connecté']);
+            echo json_encode(['success' => false, 'error' => 'Utilisateur non connecté']);
             return;
         }
 
         $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
         
-        // Récupérer les notifications non lues
-        $notifications = $this->notificationModele->obtenirNotificationsNonLues($idUtilisateur);
-        
-        // Retourner les notifications au format JSON
-        echo json_encode([
-            'success' => true,
-            'notifications' => $notifications,
-            'count' => count($notifications)
-        ]);
+        try {
+            // Récupérer les notifications non lues
+            $notifications = $this->notificationModele->obtenirNotificationsNonLues($idUtilisateur);
+            
+            // Retourner les notifications au format JSON
+            echo json_encode([
+                'success' => true,
+                'notifications' => $notifications,
+                'count' => count($notifications)
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false, 
+                'error' => 'Erreur lors de la récupération des notifications: ' . $e->getMessage()
+            ]);
+        }
     }
     
     /**
@@ -60,25 +75,37 @@ class NotificationControleur extends ControleurBase
     {
         // Vérifier si l'utilisateur est connecté
         if (!$this->estConnecte()) {
-            echo json_encode(['error' => 'Utilisateur non connecté']);
+            echo json_encode(['success' => false, 'error' => 'Utilisateur non connecté']);
             return;
         }
         
-        // Récupérer les données JSON envoyées
-        $jsonData = file_get_contents("php://input");
-        $data = json_decode($jsonData, true);
-        
-        $idNotification = isset($data['id_notification']) ? intval($data['id_notification']) : 0;
-        
-        if ($idNotification <= 0) {
-            echo json_encode(['error' => 'ID de notification invalide']);
-            return;
+        try {
+            // Récupérer les données JSON envoyées
+            $jsonData = file_get_contents("php://input");
+            $data = json_decode($jsonData, true);
+            
+            if (!$data || !isset($data['id_notification'])) {
+                echo json_encode(['success' => false, 'error' => 'Données invalides']);
+                return;
+            }
+            
+            $idNotification = intval($data['id_notification']);
+            
+            if ($idNotification <= 0) {
+                echo json_encode(['success' => false, 'error' => 'ID de notification invalide']);
+                return;
+            }
+            
+            // Marquer la notification comme lue
+            $success = $this->notificationModele->marquerCommeLue($idNotification);
+            
+            echo json_encode(['success' => $success]);
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false, 
+                'error' => 'Erreur lors du traitement: ' . $e->getMessage()
+            ]);
         }
-        
-        // Marquer la notification comme lue
-        $success = $this->notificationModele->marquerCommeLue($idNotification);
-        
-        echo json_encode(['success' => $success]);
     }
     
     /**
@@ -88,16 +115,22 @@ class NotificationControleur extends ControleurBase
     {
         // Vérifier si l'utilisateur est connecté
         if (!$this->estConnecte()) {
-            echo json_encode(['error' => 'Utilisateur non connecté']);
+            echo json_encode(['success' => false, 'error' => 'Utilisateur non connecté']);
             return;
         }
         
-        $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
-        
-        // Marquer toutes les notifications comme lues
-        $success = $this->notificationModele->marquerToutesCommeLues($idUtilisateur);
-        
-        echo json_encode(['success' => $success]);
-    }
+        try {
+            $idUtilisateur = $this->utilisateurConnecte['id_utilisateur'];
+            
+            // Marquer toutes les notifications comme lues
+            $success = $this->notificationModele->marquerToutesCommeLues($idUtilisateur);
+            
+            echo json_encode(['success' => $success]);
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false, 
+                'error' => 'Erreur lors du traitement: ' . $e->getMessage()
+            ]);
+        }
     }
 }
