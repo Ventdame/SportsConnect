@@ -1,9 +1,29 @@
 <?php
 // index.php
 
+// Configuration de la durée de vie de la session à 1 heure
+ini_set('session.gc_maxlifetime', 3600);
+session_set_cookie_params(3600);
+
 // Démarrer la session au tout début
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+// Vérifier si la session a expiré
+if (isset($_SESSION['utilisateur']) && isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 3600)) {
+    // La session a duré plus d'une heure
+    session_unset();     // Effacer les variables de session
+    session_destroy();   // Détruire la session
+    
+    // Rediriger vers la page de connexion avec un message
+    header('Location: ?page=connexion&message=session_expiree');
+    exit;
+}
+
+// Mettre à jour le timestamp de dernière activité
+if (isset($_SESSION['utilisateur'])) {
+    $_SESSION['last_activity'] = time();
 }
 
 // Définir le gestionnaire d'erreurs personnalisé
@@ -19,14 +39,6 @@ use App\Securite\SecurityMiddleware;
 try {
     // Ajouter les en-têtes de sécurité
     SecurityMiddleware::ajouterEnTetes();
-    
-    // Vérifier la requête
-    /*if (!SecurityMiddleware::verifierRequete()) {
-        // Rediriger vers la page d'accueil avec un message d'erreur
-        $_SESSION['messageErreur'] = "Requête invalide. Veuillez réessayer.";
-        header("Location: ?page=accueil");
-        exit;
-    }*/
     
     // Vérifier la requête uniquement pour certaines actions sensibles
     $page = $_GET['page'] ?? 'accueil';

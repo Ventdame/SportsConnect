@@ -40,6 +40,11 @@ class ConnexionControleur extends ControleurBase
             return;
         }
 
+        // Vérifier si la session a expiré
+        if (isset($_GET['message']) && $_GET['message'] === 'session_expiree') {
+            $this->ajouterMessageErreur("Votre session a expiré pour des raisons de sécurité. Veuillez vous reconnecter.");
+        }
+
         $vue = new ConnexionVue("Connexion - SportConnect");
         $vue->afficher();
     }
@@ -53,10 +58,10 @@ class ConnexionControleur extends ControleurBase
         if (!$this->interdireAccesSiConnecte()) {
             return;
         }
-        
+
         // Vérification si la méthode de la requête est POST
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            
+
             $donnees = $this->obtenirDonneesFormulaire(champsRequis: ['identifiant', 'mot_de_passe']);
 
             if ($donnees) {

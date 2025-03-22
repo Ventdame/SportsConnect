@@ -7,6 +7,7 @@ use App\Core\Reponses;
 use App\Fabrique\EvenementModele;
 use App\Fabrique\UtilisateurModele;
 use App\Fabrique\NotificationModele;
+use App\Vues\AdminVue;
 
 /**
  * Contrôleur pour la gestion des fonctionnalités administrateur
@@ -57,17 +58,30 @@ class AdminControleur extends ControleurBase
             return;
         }
 
-        // Afficher le tableau de bord administrateur
-        // TODO: Créer une vue pour le tableau de bord administrateur
-        echo "<h1>Tableau de bord administrateur</h1>";
-        echo "<p>Bienvenue, " . htmlspecialchars($this->utilisateurConnecte['pseudo']) . "!</p>";
+        // Rediriger vers la gestion des utilisateurs par défaut
+        Reponses::rediriger('admin', ['action' => 'utilisateurs']);
+    }
+
+    /**
+     * Méthode pour gérer les utilisateurs
+     */
+    public function utilisateurs()
+    {
+        if (!$this->exigerConnexion() || !$this->exigerRoleAdmin()) {
+            return;
+        }
         
-        // Liens vers les différentes fonctionnalités administrateur
-        echo "<ul>";
-        echo "<li><a href='?page=admin&action=evenements'>Gestion des événements</a></li>";
-        echo "<li><a href='?page=admin&action=utilisateurs'>Gestion des utilisateurs</a></li>";
-        echo "<li><a href='?page=admin&action=feedbacks'>Gestion des feedbacks</a></li>";
-        echo "</ul>";
+        // Récupérer la liste des utilisateurs
+        $utilisateurs = $this->utilisateurModele->obtenirTous();
+        
+        // Afficher la vue
+        $vue = new AdminVue(
+            "Gestion des utilisateurs - Admin",
+            $this->utilisateurConnecte,
+            $utilisateurs,
+            'utilisateurs'
+        );
+        $vue->afficher();
     }
 
     /**
@@ -80,36 +94,21 @@ class AdminControleur extends ControleurBase
             return;
         }
 
-        // TODO: Créer une vue pour la gestion des événements
-        echo "<h1>Gestion des événements</h1>";
-        
         // Récupérer tous les événements
         $evenements = $this->evenementModele->obtenirTous();
         
-        // Afficher les événements
-        echo "<table border='1'>";
-        echo "<tr><th>ID</th><th>Nom</th><th>Date</th><th>Statut</th><th>Actions</th></tr>";
-        
-        foreach ($evenements as $evenement) {
-            echo "<tr>";
-            echo "<td>" . htmlspecialchars($evenement['id_evenement']) . "</td>";
-            echo "<td>" . htmlspecialchars($evenement['nom_evenement']) . "</td>";
-            echo "<td>" . htmlspecialchars($evenement['date_evenement']) . "</td>";
-            echo "<td>" . htmlspecialchars($evenement['statut'] ?? 'En attente') . "</td>";
-            echo "<td>";
-            echo "<a href='?page=admin&action=approuver_evenement&id=" . $evenement['id_evenement'] . "'>Approuver</a> | ";
-            echo "<a href='?page=admin&action=refuser_evenement&id=" . $evenement['id_evenement'] . "'>Refuser</a>";
-            echo "</td>";
-            echo "</tr>";
-        }
-        
-        echo "</table>";
+        // Afficher la vue
+        $vue = new AdminVue(
+            "Gestion des événements - Admin",
+            $this->utilisateurConnecte,
+            $evenements,
+            'evenements'
+        );
+        $vue->afficher();
     }
 
     /**
      * Méthode pour approuver un événement
-     * 
-     * @param int $idEvenement ID de l'événement à approuver
      */
     public function approuver_evenement()
     {
@@ -131,7 +130,7 @@ class AdminControleur extends ControleurBase
         $resultat = $this->evenementModele->approuverEvenement($idEvenement, $this->utilisateurConnecte['id_utilisateur']);
         
         if ($resultat) {
-            $this->ajouterMessageSucces("L'événement a été approuvé avec succès.");
+            $this->ajouterMessageReussite("L'événement a été approuvé avec succès.");
         } else {
             $this->ajouterMessageErreur("Une erreur est survenue lors de l'approbation de l'événement.");
         }
@@ -141,8 +140,6 @@ class AdminControleur extends ControleurBase
 
     /**
      * Méthode pour afficher le formulaire de refus d'un événement
-     * 
-     * @param int $idEvenement ID de l'événement à refuser
      */
     public function refuser_evenement()
     {
@@ -169,14 +166,14 @@ class AdminControleur extends ControleurBase
             return;
         }
 
-        // Afficher le formulaire de refus
-        echo "<h1>Refuser l'événement : " . htmlspecialchars($evenement['nom_evenement']) . "</h1>";
-        echo "<form method='post' action='?page=admin&action=traiter_refus_evenement'>";
-        echo "<input type='hidden' name='id_evenement' value='" . $idEvenement . "'>";
-        echo "<label for='motif_refus'>Motif du refus :</label><br>";
-        echo "<textarea name='motif_refus' id='motif_refus' rows='5' cols='50' required></textarea><br><br>";
-        echo "<input type='submit' value='Refuser l\'événement'>";
-        echo "</form>";
+        // Afficher la vue avec le formulaire de refus
+        $vue = new AdminVue(
+            "Refuser un événement - Admin",
+            $this->utilisateurConnecte,
+            $evenement,
+            'refuser_evenement'
+        );
+        $vue->afficher();
     }
 
     /**
@@ -215,54 +212,12 @@ class AdminControleur extends ControleurBase
         $resultat = $this->evenementModele->refuserEvenement($idEvenement, $this->utilisateurConnecte['id_utilisateur'], $motifRefus);
         
         if ($resultat) {
-            $this->ajouterMessageSucces("L'événement a été refusé avec succès.");
+            $this->ajouterMessageReussite("L'événement a été refusé avec succès.");
         } else {
             $this->ajouterMessageErreur("Une erreur est survenue lors du refus de l'événement.");
         }
         
         Reponses::rediriger('admin', ['action' => 'evenements']);
-    }
-
-    /**
-     * Méthode pour gérer les utilisateurs (liste, modification des rôles)
-     */
-    public function utilisateurs()
-    {
-        if (!$this->exigerConnexion() || !$this->exigerRoleAdmin()) {
-            return;
-        }
-
-        // Récupérer la liste des utilisateurs
-        $utilisateurs = $this->utilisateurModele->obtenirTous();
-        
-        // Afficher les utilisateurs
-        echo "<h1>Gestion des utilisateurs</h1>";
-        echo "<table border='1'>";
-        echo "<tr><th>ID</th><th>Pseudo</th><th>Email</th><th>Rôle</th><th>Actions</th></tr>";
-        
-        foreach ($utilisateurs as $utilisateur) {
-            echo "<tr>";
-            echo "<td>" . htmlspecialchars($utilisateur['id_utilisateur']) . "</td>";
-            echo "<td>" . htmlspecialchars($utilisateur['pseudo']) . "</td>";
-            echo "<td>" . htmlspecialchars($utilisateur['email']) . "</td>";
-            echo "<td>" . htmlspecialchars($utilisateur['role'] ?? 'user') . "</td>";
-            echo "<td>";
-            
-            if ($utilisateur['role'] === 'administrateur') {
-                echo "<a href='?page=admin&action=retirer_admin&id=" . $utilisateur['id_utilisateur'] . "' 
-                      onclick=\"return confirm('Êtes-vous sûr de retirer les droits admin ?');\">
-                      Retirer admin</a>";
-            } else {
-                echo "<a href='?page=admin&action=promouvoir_admin&id=" . $utilisateur['id_utilisateur'] . "' 
-                      onclick=\"return confirm('Êtes-vous sûr de promouvoir cet utilisateur ?');\">
-                      Promouvoir admin</a>";
-            }
-            
-            echo "</td>";
-            echo "</tr>";
-        }
-        
-        echo "</table>";
     }
 
     /**
@@ -285,10 +240,10 @@ class AdminControleur extends ControleurBase
         }
 
         // Promouvoir l'utilisateur
-        $resultat = $this->utilisateurModele->mettreAJourUtilisateur($idUtilisateur, ['role' => 'administrateur']);
+        $resultat = $this->utilisateurModele->mettreAJourUtilisateur($idUtilisateur, ['role' => 'admin']);
         
         if ($resultat) {
-            $this->ajouterMessageSucces("L'utilisateur a été promu administrateur avec succès.");
+            $this->ajouterMessageReussite("L'utilisateur a été promu administrateur avec succès.");
         } else {
             $this->ajouterMessageErreur("Une erreur est survenue lors de la promotion de l'utilisateur.");
         }
@@ -326,7 +281,7 @@ class AdminControleur extends ControleurBase
         $resultat = $this->utilisateurModele->mettreAJourUtilisateur($idUtilisateur, ['role' => 'user']);
         
         if ($resultat) {
-            $this->ajouterMessageSucces("Les droits d'administrateur ont été retirés avec succès.");
+            $this->ajouterMessageReussite("Les droits d'administrateur ont été retirés avec succès.");
         } else {
             $this->ajouterMessageErreur("Une erreur est survenue lors du retrait des droits d'administrateur.");
         }
@@ -344,36 +299,32 @@ class AdminControleur extends ControleurBase
             return;
         }
 
-        // TODO: Créer une vue pour la gestion des feedbacks
-        echo "<h1>Gestion des feedbacks et suggestions</h1>";
-        
-        // Récupérer tous les feedbacks
-        $feedbacks = $this->requetePersonnalisee(
-            "SELECT f.*, u.pseudo 
-             FROM feedbacks_suggestions f
-             JOIN utilisateurs u ON f.id_utilisateur = u.id_utilisateur
-             ORDER BY f.date_feedback DESC"
-        );
-        
-        // Afficher les feedbacks
-        echo "<table border='1'>";
-        echo "<tr><th>ID</th><th>Utilisateur</th><th>Contenu</th><th>Date</th><th>Statut</th><th>Actions</th></tr>";
-        
-        foreach ($feedbacks as $feedback) {
-            echo "<tr>";
-            echo "<td>" . htmlspecialchars($feedback['id_feedback']) . "</td>";
-            echo "<td>" . htmlspecialchars($feedback['pseudo']) . "</td>";
-            echo "<td>" . htmlspecialchars($feedback['contenu']) . "</td>";
-            echo "<td>" . htmlspecialchars($feedback['date_feedback']) . "</td>";
-            echo "<td>" . htmlspecialchars($feedback['statut']) . "</td>";
-            echo "<td>";
-            echo "<a href='?page=admin&action=valider_feedback&id=" . $feedback['id_feedback'] . "'>Valider</a> | ";
-            echo "<a href='?page=admin&action=refuser_feedback&id=" . $feedback['id_feedback'] . "'>Refuser</a>";
-            echo "</td>";
-            echo "</tr>";
+        try {
+            // Récupérer tous les feedbacks directement avec PDO
+            $sql = "SELECT f.*, u.pseudo 
+                    FROM feedbacks_suggestions f
+                    JOIN utilisateurs u ON f.id_utilisateur = u.id_utilisateur
+                    ORDER BY f.date_feedback DESC";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $feedbacks = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            // Afficher la vue
+            $vue = new AdminVue(
+                "Gestion des feedbacks - Admin",
+                $this->utilisateurConnecte,
+                $feedbacks,
+                'feedbacks'
+            );
+            $vue->afficher();
+            
+        } catch (\PDOException $e) {
+            // Journaliser l'erreur
+            error_log("Erreur lors de la récupération des feedbacks: " . $e->getMessage());
+            $this->ajouterMessageErreur("Une erreur est survenue lors de la récupération des feedbacks.");
+            Reponses::rediriger('admin');
         }
-        
-        echo "</table>";
     }
 
     /**
@@ -395,17 +346,21 @@ class AdminControleur extends ControleurBase
             return;
         }
 
-        // Valider le feedback
-        $resultat = $this->requetePersonnalisee(
-            "UPDATE feedbacks_suggestions SET statut = 'Valider' WHERE id_feedback = :id_feedback",
-            [':id_feedback' => $idFeedback],
-            false
-        );
-        
-        if ($resultat) {
-            $this->ajouterMessageSucces("Le feedback a été validé avec succès.");
-        } else {
-            $this->ajouterMessageErreur("Une erreur est survenue lors de la validation du feedback.");
+        try {
+            // Exécuter directement la requête avec PDO
+            $stmt = $this->pdo->prepare("UPDATE feedbacks_suggestions SET statut = 'Valider' WHERE id_feedback = :id_feedback");
+            $stmt->bindParam(':id_feedback', $idFeedback, \PDO::PARAM_INT);
+            $resultat = $stmt->execute();
+            
+            if ($resultat) {
+                $this->ajouterMessageReussite("Le feedback a été validé avec succès.");
+            } else {
+                $this->ajouterMessageErreur("Une erreur est survenue lors de la validation du feedback.");
+            }
+        } catch (\PDOException $e) {
+            // Journaliser l'erreur
+            error_log("Erreur lors de la validation du feedback: " . $e->getMessage());
+            $this->ajouterMessageErreur("Une erreur de base de données est survenue lors de la validation du feedback.");
         }
         
         Reponses::rediriger('admin', ['action' => 'feedbacks']);
@@ -430,17 +385,21 @@ class AdminControleur extends ControleurBase
             return;
         }
 
-        // Refuser le feedback
-        $resultat = $this->requetePersonnalisee(
-            "UPDATE feedbacks_suggestions SET statut = 'Refuser' WHERE id_feedback = :id_feedback",
-            [':id_feedback' => $idFeedback],
-            false
-        );
-        
-        if ($resultat) {
-            $this->ajouterMessageSucces("Le feedback a été refusé avec succès.");
-        } else {
-            $this->ajouterMessageErreur("Une erreur est survenue lors du refus du feedback.");
+        try {
+            // Exécuter directement la requête avec PDO
+            $stmt = $this->pdo->prepare("UPDATE feedbacks_suggestions SET statut = 'Refuser' WHERE id_feedback = :id_feedback");
+            $stmt->bindParam(':id_feedback', $idFeedback, \PDO::PARAM_INT);
+            $resultat = $stmt->execute();
+            
+            if ($resultat) {
+                $this->ajouterMessageReussite("Le feedback a été refusé avec succès.");
+            } else {
+                $this->ajouterMessageErreur("Une erreur est survenue lors du refus du feedback.");
+            }
+        } catch (\PDOException $e) {
+            // Journaliser l'erreur
+            error_log("Erreur lors du refus du feedback: " . $e->getMessage());
+            $this->ajouterMessageErreur("Une erreur de base de données est survenue lors du refus du feedback.");
         }
         
         Reponses::rediriger('admin', ['action' => 'feedbacks']);
@@ -453,7 +412,7 @@ class AdminControleur extends ControleurBase
      */
     private function exigerRoleAdmin()
     {
-        if (!isset($this->utilisateurConnecte['role']) || $this->utilisateurConnecte['role'] !== 'administrateur') {
+        if (!isset($this->utilisateurConnecte['role']) || empty($this->utilisateurConnecte['role']) || $this->utilisateurConnecte['role'] !== 'admin') {
             $this->ajouterMessageErreur("Vous n'avez pas les droits d'accès à cette page.");
             Reponses::rediriger('accueil');
             return false;

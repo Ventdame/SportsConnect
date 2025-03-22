@@ -316,3 +316,4 @@ public function supprimerEvenementCreerParUtilisateur($idEvenement, $idUtilisate
             return false;
         }
     }
+}
