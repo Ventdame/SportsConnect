@@ -90,11 +90,14 @@ class InscriptionVue extends VueBase
                     </div>
 
                     <!-- Champ pour le sexe -->
-                    <select id="sexe" name="sexe" class="inscription-input" required>
-                        <option value="H" <?php echo isset($_POST['sexe']) && $_POST['sexe'] === 'H' ? 'selected' : ''; ?>>Homme</option>
-                        <option value="F" <?php echo isset($_POST['sexe']) && $_POST['sexe'] === 'F' ? 'selected' : ''; ?>>Femme</option>
-                        <option value="A" <?php echo (!isset($_POST['sexe']) || $_POST['sexe'] === 'A') ? 'selected' : ''; ?>>Autre / Ne pas préciser</option>
-                    </select>
+                    <div class="form-group">
+                        <label for="sexe" class="form-label">Sexe</label>
+                        <select id="sexe" name="sexe" class="inscription-input" required>
+                            <option value="H" <?php echo isset($_POST['sexe']) && $_POST['sexe'] === 'H' ? 'selected' : ''; ?>>Homme</option>
+                            <option value="F" <?php echo isset($_POST['sexe']) && $_POST['sexe'] === 'F' ? 'selected' : ''; ?>>Femme</option>
+                            <option value="A" <?php echo (!isset($_POST['sexe']) || $_POST['sexe'] === 'A') ? 'selected' : ''; ?>>Autre / Ne pas préciser</option>
+                        </select>
+                    </div>
 
                     <!-- Case à cocher PMR (Personne à mobilité réduite) -->
                     <div class="form-group-checkbox">
@@ -105,10 +108,8 @@ class InscriptionVue extends VueBase
                         </label>
                     </div>
 
-
-
                     <!-- Bouton pour soumettre le formulaire -->
-                    <button type="submit" class="inscription-button">S'inscrire</button>
+                    <button type="submit" class="btn btn--primary">S'inscrire</button>
                 </form>
             </div>
         </main>

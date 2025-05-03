@@ -387,7 +387,7 @@ class ProfilVue extends VueBase
                                                 <div class="event-card-footer">
                                                     <form method="POST" action="?page=reservation&action=supprimer" class="form-supprimer">
                                                         <input type="hidden" name="id_evenement" value="<?php echo $this->e($evenement['id_evenement']); ?>">
-                                                        <button type="submit" class="btn-supprimer">
+                                                        <button type="submit" class="btn btn--danger">
                                                             <i class="fa-solid fa-trash"></i> Supprimer
                                                         </button>
                                                     </form>
@@ -437,7 +437,7 @@ class ProfilVue extends VueBase
                                                 <!-- Remplacer le lien actuel par un formulaire -->
                                                 <form method="POST" action="?page=evenement&action=supprimer_evenement_creer_utilisateur" style="display: inline;">
                                                     <input type="hidden" name="id_evenement" value="<?php echo $this->e($evenement['id_evenement']); ?>">
-                                                    <button type="submit" class="btn-supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
+                                                    <button type="submit" class="btn btn--danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
                                                         <i class="fa-solid fa-trash"></i> Supprimer
                                                     </button>
                                                 </form>

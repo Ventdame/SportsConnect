@@ -76,7 +76,7 @@ class ReservationVue extends VueBase
                             <input type="date" id="filter-date" name="date" class="filter-input">
                         </div>
                         <div class="form-group">
-                            <button type="submit" class="btn-search">Rechercher</button>
+                            <button type="submit" class="btn btn--primary">Rechercher</button>
                         </div>
                     </div>',
                     ['id' => 'filter-form']
@@ -145,10 +145,10 @@ class ReservationVue extends VueBase
                                         'POST',
                                         $this->genererInputIDSecurise($reservation['secure_token']) .
                                         $this->genererChampsCSRF('reservation_' . $reservation['secure_token']) . 
-                                        '<button type="submit" class="btn-reserver">Réserver</button>'
+                                        '<button type="submit" class="btn btn--primary">Réserver</button>'
                                     );
                                 } else {
-                                    echo '<a href="?page=connexion" class="btn-reserver">Connectez-vous pour réserver</a>';
+                                    echo '<a href="?page=connexion" class="btn btn--primary">Connectez-vous pour réserver</a>';
                                 }
                                 ?>
                             </div>

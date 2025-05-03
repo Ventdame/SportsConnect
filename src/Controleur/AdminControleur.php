@@ -79,7 +79,7 @@ class AdminControleur extends ControleurBase
             "Gestion des utilisateurs - Admin",
             $this->utilisateurConnecte,
             $utilisateurs,
-            'utilisateurs'
+            activeTab: 'utilisateurs'
         );
         $vue->afficher();
     }

@@ -35,7 +35,7 @@ class ConnexionVue extends VueBase
                 <form action="?page=connexion&action=traiterConnexion" method="POST" class="connexion-form">
                     <input type="text" name="identifiant" class="connexion-input" placeholder="Email ou Pseudo" required>
                     <input type="password" name="mot_de_passe" class="connexion-input" placeholder="Mot de passe" required>
-                    <button type="submit" class="connexion-button">Se connecter</button>
+                    <button type="submit" class="btn btn--primary">Se connecter</button>
                 </form>
 
                 <p class="inscription-link">
